@@ -1,0 +1,464 @@
+.container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: #000;
+  z-index: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.container::before {
+  content: "";
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  background-image: url("../../images/login_background.png");
+  background-size: cover;
+  background-position: center;
+  filter: blur(15px);
+  box-shadow: inset 0 0 0 2000px rgba(0, 0, 0, 0.80);
+  z-index: -1;
+}
+
+.actsPage {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  padding-bottom: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  padding-bottom: 250px;
+}
+
+.contentWrapper {
+  width: 100%;
+  max-width: 1200px;
+  margin-top: 20px;
+}
+
+:global(.header) {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.header_cont {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.parent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  gap: 20px;
+}
+
+.item {
+  width: 100%;
+}
+
+.title {
+  font-family: "Oxanium", sans-serif;
+  font-size: 21px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 10px 0;
+}
+
+.btncont {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+button {
+  padding: 12px 24px;
+  border-radius: 12px;
+  color: #fff;
+  min-width: max-content;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  outline: none;
+  font-weight: 400;
+  box-sizing: border-box;
+  text-align: center;
+  white-space: normal;
+}
+
+.active {
+  background-color: #0093FF;
+}
+
+.dropdownContainer {
+  position: relative;
+  width: 100%;
+}
+
+.dropdownHeader {
+  width: 100%;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  box-sizing: border-box;
+  font-weight: 500;
+}
+
+.arrowIcon {
+  transition: transform 0.3s ease;
+}
+
+.rotate {
+  transform: rotate(180deg);
+}
+
+.dropdownList {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  width: 100%;
+  background: #1a1a1a;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 10;
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+}
+
+.dropdownItem {
+  padding: 12px 24px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.dropdownItem:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dropdownItem:not(:last-child) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.savebutton {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  z-index: 100;
+  max-width: calc(1200px - 40px);
+  margin: 0 auto;
+}
+
+.savebutton button {
+  width: 100%;
+}
+
+.searchWrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  margin: 20px 0;
+}
+
+.input {
+  width: 100%;
+  padding: 15px 45px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: white;
+  outline: none;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.searchIcon {
+  position: absolute;
+  left: 15px;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+}
+
+.filterIcon {
+  position: absolute;
+  right: 15px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+.multiRangeContainer {
+  position: relative;
+  width: 100%;
+  height: 50px; /* Увеличили высоту для удобства */
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.rail {
+  position: absolute;
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.sliderTrack {
+  position: absolute;
+  height: 6px;
+  background: #3abafe;
+  border-radius: 10px;
+  z-index: 1;
+}
+
+.rangeWrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.rangeInput {
+  position: absolute;
+  width: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  pointer-events: none;
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+.rangeInput::-webkit-slider-thumb {
+  pointer-events: auto;
+  -webkit-appearance: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  background: transparent; 
+}
+
+.thumbValue {
+  position: absolute;
+  top: 50%;
+  width: 28px;
+  height: 28px;
+  background: #3abafe;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  font-family: "Oxanium", sans-serif;
+  transform: translate(-50%, -50%); 
+  pointer-events: none; 
+  z-index: 6;
+  box-shadow: 0 0 10px rgba(58, 186, 254, 0.5);
+}
+.locationSliderSection {
+  width: 100%;
+  padding: 16px 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: rgba(255, 255, 255, 0.05); /* #FFFFFF0D */
+  border-radius: 12px;
+}
+
+/* Стили заголовка над полоской */
+.sliderHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.sliderTitle {
+  font-size: 18px;
+  margin: 0;
+  color: #fff;
+}
+
+.currentLocation {
+  font-size: 16px;
+  margin: 0;
+  color: #0092FE;
+  font-weight: bold;
+}
+
+.customRangeWrapper {
+  position: relative;
+  width: 100%;
+  height: 40px; 
+  display: flex;
+  align-items: center;
+}
+
+.rangeTrack {
+  position: absolute;
+  width: 100%;
+  height: 6px;
+  background: #2a2a2a;
+  border-radius: 10px;
+  z-index: 1;
+}
+
+.activeTrack {
+  position: absolute;
+  height: 6px;
+  background: #0092FE;
+  border-radius: 10px;
+  z-index: 2;
+  /* УДАЛИ transition: width или left здесь, если они есть */
+  /* transition: none; */ 
+}
+
+.thumbcont {
+  position: absolute;
+  min-width: 30px; 
+  height: 30px;
+  background-color: #0092FE;
+  z-index: 99;
+  border-radius: 8px;
+  transform: translate(-50%, -50%);
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.rangeThumb {
+  width: auto; 
+  height: auto; 
+  display: block;
+}
+
+.hiddenInput {
+  position: absolute;
+  width: 100%;
+  height: 6px; /* Высота должна совпадать с высотой трека */
+  top: 50%;
+  transform: translateY(-50%);
+  
+  /* Полная прозрачность */
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent; 
+  outline: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  
+  /* Пропускаем клики сквозь трек */
+  pointer-events: none; 
+  z-index: 10;
+}
+
+/* Убираем синюю обводку в Chrome/Safari при фокусе */
+.hiddenInput:focus {
+  outline: none;
+}
+
+/* Стилизация невидимого ползунка (Chrome, Safari, Edge, Opera) */
+.hiddenInput::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  
+  /* Размер должен быть равен или чуть больше вашего синего кастомного ползунка */
+  height: 30px; 
+  width: 30px;
+  
+  /* Делаем его прозрачным, чтобы видеть ваш кастомный thumb под ним */
+  background: transparent; 
+  cursor: pointer;
+  
+  /* Возвращаем возможность клика и перетаскивания */
+  pointer-events: all; 
+  border: none;
+}
+
+/* Стилизация невидимого ползунка (Firefox) */
+.hiddenInput::-moz-range-thumb {
+  appearance: none;
+  height: 30px;
+  width: 30px;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: all;
+  border: none;
+}
+
+/* Убираем серую полоску трека в Firefox */
+.hiddenInput::-moz-range-track {
+  background: transparent;
+  border: none;
+}
+
+
+.locationLabels {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.locationLabels span {
+  font-size: 13px;
+  color: #555;
+  transition: color 0.3s;
+  flex: 1;
+}
+
+.locationLabels span:nth-child(1) { text-align: left; }
+.locationLabels span:nth-child(2) { text-align: center; }
+.locationLabels span:nth-child(3) { text-align: right; }
+
+.activeLoc {
+  color: #58d0ff !important;
+  font-weight: 700;
+}
+.desc {
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+
+  white-space: normal !important; 
+  
+  display: -webkit-box !important;
+  -webkit-line-clamp: 3 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}

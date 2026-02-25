@@ -1,0 +1,251 @@
+.actCard > * {
+  position: relative;
+  z-index: 2;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  
+  border-radius: inherit;
+  z-index: 1;
+}
+
+.videoStream {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -1;
+  border-radius: inherit;
+}
+.parent{
+  display: flex;
+  flex-direction: column;
+}
+.subtitle {
+  font-family: "Oxanium", sans-serif;
+  font-size: 18px;
+  color: #979595;
+  font-weight: 600;
+  opacity: 0.7;
+  margin: 0;
+}
+.live {
+  font-family: "Oxanium", sans-serif;
+  font-size: 18px;
+  color: #ffffff;
+  font-weight: 600;
+  margin: 0;
+}
+.infoblock{
+  position: absolute;
+  bottom: 15px;
+  left: 20px;
+}
+.actCard {
+  position: relative;
+  z-index: 2;
+  margin-top: 20px;
+  border-radius: 10px;
+  height: 397px;
+  width: 100%; /* Чтобы соответствовала контейнеру */
+  cursor: pointer;
+  
+  /* Эффект стекла и градиент */
+  background: linear-gradient(
+    180deg, 
+    rgba(255, 255, 255, 0.05) 0%, 
+    rgba(13, 13, 13, 0.4) 100%
+  );
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+
+  /* Тени: внешняя вниз + внутренняя для глубины */
+  box-shadow: 
+    0 15px 35px rgba(0, 0, 0, 0.5),           /* Внешняя тень */
+    inset 0 -30px 50px rgba(0, 0, 0, 0.3);    /* Внутренний градиент снизу */
+
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.actCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.6), 
+    inset 0 -30px 50px rgba(0, 0, 0, 0.4);
+  border-color: rgba(58, 186, 255, 0.3); /* Легкий синий отблеск при наведении */
+}
+
+.actCard:hover {
+  transform: translateY(-2px);
+  /* box-shadow:
+    inset 0px 0px 40px 0px #b547ffb2,
+    0px 8px 20px rgba(181, 71, 255, 0.3); */
+}
+
+.actCard {
+  position: relative;
+  background-size: 170%;
+  background-position: center 70%;
+  background-repeat: no-repeat;
+  background-blend-mode: overlay;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #fff;
+}
+.actCard::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 45%;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: inherit;
+  
+}
+.actCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  pointer-events: none;
+  z-index: 1;
+}
+/* .actCard h1 {
+  margin-top: 90px;
+  font-weight: 700;
+  font-size: 22px;
+  text-align: center;
+  color: #fff;
+} */
+.actCard h3 {
+  font-weight: 300;
+  font-size: 12px;
+  text-align: center;
+  color: #fff;
+}
+/* .actCard p {
+  font-weight: 400;
+  font-size: 10px;
+  text-align: center;
+  color: #fff;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 6px 4px;
+  width: 252px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.6);
+} */
+.stripe {
+  margin-top: 15px;
+  width: 100%;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.3);
+}
+.blocks {
+  margin-top: 20px;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+}
+.blocks p {
+  font-weight: 400;
+  font-size: 12px;
+  color: #fff;
+  height: 20px;
+
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.14);
+  width: 100%;
+  max-width: max-content;
+}
+.info {
+  margin-top: 15px;
+  display: flex;
+  width: 100%;
+  justify-content: space-around;
+  align-items: center;
+}
+.arrows {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+}
+.arrows h2 {
+  font-weight: 400;
+  font-size: 16px;
+  color: #fff;
+}
+.arrow {
+  display: flex;
+  align-items: center;
+  color: #fff;
+  gap: 5px;
+}
+.info h4 {
+  font-weight: 500;
+  font-size: 12px;
+  text-align: right;
+  color: rgba(255, 255, 255, 0.6);
+}
+.linkIcon {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+.favoritesIcon {
+  position: absolute;
+  top: 10px;
+  left: 50px;
+}
+.online{
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  background-color: #E74209;
+  border: none;
+  border-radius: 8px;
+  padding: 8px;
+  max-width: 60px;
+  align-items:center;
+}
+.title {
+  font-family: "Oxanium", sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 10px 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+.desc {
+  font-family: "Oxanium", sans-serif;
+  color: #ffffff;
+  font-weight: 500;
+}
+.inner{
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  gap: 10px;
+}

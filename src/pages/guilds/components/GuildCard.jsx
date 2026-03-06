@@ -8,26 +8,27 @@ import share from '../../../images/share.png';
 export default function GuildCard({ guild }) {
  const navigate = useNavigate();
   console.log(guild, '1!!!!!!@#')
-   const isLive = 'guild.status';
-   const title = 'guild.name';
-   const description = 'guild.description';
-   const acts = 100; 
-   const users = 1000;
-   const tags = 'Tokyo, Japan, cars'
-   let rawImageUrl = guild_default;
+   const id = guild.id; 
+   const isLive = guild.status;
+   const title = guild.name || 'no name';
+   const description = guild.description;
+   const acts = guild.actsCount || 'none'; 
+   const users = guild.membersCount || 'none';
+   const tags = guild.tags.join(', ');
+   let rawImageUrl = guild.logoFileName || guild_default;
    let finalImage;
-   
-   if (!rawImageUrl) {
-     finalImage = default_back;
-   } else if (rawImageUrl.startsWith('http')) {
-     finalImage = rawImageUrl;
-   } else {
-     finalImage = `https://meract.com${rawImageUrl}`;
-   }
-   finalImage = guild_default;
+   let coverurl = guild.coverFileName || guild_default;
+  //  if (!rawImageUrl) {
+  //    finalImage = default_back;
+  //  } else if (rawImageUrl.startsWith('http')) {
+  //    finalImage = rawImageUrl;
+  //  } else {
+  //    finalImage = `https://meract.com${rawImageUrl}`;
+  //  }
+   finalImage = guild.logoFileName || guild_default;
  
    const cardStyle = {
-     backgroundImage: `url(${finalImage})`,
+     backgroundImage: `url(${coverurl})`,
      backgroundSize: "cover",
      backgroundPosition: "center",
      backgroundRepeat: "no-repeat",
@@ -75,7 +76,7 @@ export default function GuildCard({ guild }) {
                 <p className={styles.live}>Live</p>
               </div>
             )}
-            <img src={iconguild} alt="" className={styles.avatar}/>
+            <img src={finalImage} alt="" className={styles.avatar}/>
             <h1 className={styles.title}>{title}</h1>
             <p className={styles.desc}>{description}</p>
             <div className={styles.cont}>
@@ -85,7 +86,10 @@ export default function GuildCard({ guild }) {
                 <p className={title}>{users}</p>
               </div>
             </div>
-            <p className={styles.desc} style={{fontSize:'x-small',}}>Tags: {tags}</p>
+            {tags != '' &&
+
+              <p className={styles.desc} style={{fontSize:'x-small',}}>Tags: {tags}</p>
+            }
             
           </div>
         </div>

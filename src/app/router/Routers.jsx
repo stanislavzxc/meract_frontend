@@ -246,7 +246,7 @@ export const router = createBrowserRouter([
     element: <ChatCreate />,
   },
   {
-    path: "chat/:id",
+    path: "chat/:id/:userId",
     element: <ChatSingle />,
   },
   {
@@ -282,7 +282,7 @@ export const router = createBrowserRouter([
     element: <NotificationsPage />,
   },
   {
-    path: "settings/time",
+    path: "settings/time/:name",
     element: <LocalTime />,
   },
   {

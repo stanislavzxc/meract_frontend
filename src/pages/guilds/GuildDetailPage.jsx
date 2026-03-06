@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { use, useEffect, useId, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { io } from "socket.io-client";
 
 import api from "../../shared/api/api";
 import { useAuthStore } from "../../shared/stores/authStore";
@@ -16,54 +15,125 @@ import about from '../../images/about.png';
 import notification from '../../images/notification.png'; 
 import adduser from '../../images/adduser.png'; 
 import guildsetting from '../../images/guildsetting.png';
+import { guildApi } from "../../shared/api/guild";
+import { profileApi } from "../../shared/api/profile";
+
 export default function GuildDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  const isAdmin = true;
+  const [isAdmin, setAdmin] = useState(false);
 
+  const [userid, setUserid] = useState(null);
   const [guild, setGuild] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isMember, setIsMember] = useState(false);
+  
   const [navMethod, setNavMethod] = useState(1);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isOverflowing, setIsOverflowing] = useState(false);
   const [selectedToSwap, setSelectedToSwap] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [achivemenets, setAchivemenets] = useState([
-    { id: 1, name: 'gold digger', avatar: userimg, description: 'desctiption', isBest: true },
-    { id: 2, name: 'platinum', avatar: userimg, description: 'desctiption', isBest: true },
-    { id: 3, name: 'digger', avatar: userimg, description: 'desctiption', isBest: false },
-    { id: 4, name: 'platina', avatar: userimg, description: 'desctiption', isBest: false },
-  ]);
+  const [achivemenets, setAchivemenets] = useState([]);
+  const [members, setMembers] = useState([]);
+
+  const [joinusers, setJoin] = useState([]);
 
   const descRef = useRef(null);
-  const title = 'Name';
-  const usersCount = 1000;
-  const description = 'The description text goes here...The description text goes here...The description text goes here...The description text goes here...es here...The description text goes here...es here...The description text goes here...';
-  const actscount = 1;
-  const members = [
-    { id: 1, user: 'pavel', avatar: userimg, status: 'online' },
-    { id: 2, user: 'alexey', avatar: userimg, status: '2 hours ago' },
-  ];
+  const [title, setTitle] = useState('Name');
+  const [usersCount, setUsersCount] = useState(0);
+  const [description, setDescription] = useState('');
+  const [guildImg, setGuildImg] = useState(null);
+  const [guildCover, setGuildCover] = useState(null);
 
+  const [actscount, setActscount] = useState(0);
   const [acts, setActs] = useState([
-        {
-          id: 1,
-          title: "Voices in the Crowd",
-          description:
-            "Lorem ipsum is a dummy or placeholder text commonly used in graphic design, publishing",
-          navigator: "Graphite8",
-          heroes: ["Graphite8", "NeonFox", "ShadowWeave", "EchoStorm1"],
-          location: "Puerto de la Cruz (ES)",
-          distance: "2,500km Away",
-          upvotes: 12,
-          downvotes: 12,
-          liveIn: "2h 15m",
-          isMock: true,
-          status:'ONLINE',
-        },
+        // {
+        //   id: 1,
+        //   title: "Voices in the Crowd",
+        //   description:
+        //     "Lorem ipsum is a dummy or placeholder text commonly used in graphic design, publishing",
+        //   navigator: "Graphite8",
+        //   heroes: ["Graphite8", "NeonFox", "ShadowWeave", "EchoStorm1"],
+        //   location: "Puerto de la Cruz (ES)",
+        //   distance: "2,500km Away",
+        //   upvotes: 12,
+        //   downvotes: 12,
+        //   liveIn: "2h 15m",
+        //   isMock: true,
+        //   status:'ONLINE',
+        // },
       ]);
+useEffect(() => {
+  const loadAllData = async () => {
+    try {
+      setLoading(true);
+      
+      // Загружаем гильдию и профиль параллельно
+      const [guildData, profileData] = await Promise.all([
+        guildApi.getGuild(id),
+        profileApi.getProfile()
+      ]);
+
+      console.log('guildData:', guildData);
+      
+      // Обработка данных гильдии
+      if (guildData) {
+        setTitle(guildData.name || 'No Name');
+        setDescription(guildData.description || 'no description');
+        setUsersCount(guildData.members.length);
+        setGuildImg(guildData.logoFileName);
+        setGuildCover(guildData.coverFileName);
+        setMembers(guildData.members);
+        setAchivemenets(guildData.achievements);
+        setActscount(guildData.actsCount);
+        setActs(guildData.acts);
+        
+        // Проверка членства
+        const isUserMember = guildData.members.some(m => m.id === profileData.id);
+        const isUserOwner = guildData.ownerId == profileData.id;
+
+        setIsMember(isUserMember);
+        setAdmin(isUserOwner);
+        setUserid(profileData.id);
+      }
+
+      // Если админ, загружаем заявки отдельно
+      if (isAdmin) {
+        try {
+          const joinData = await guildApi.getJoins(id);
+          console.log('Join data from API:', joinData); // Должен быть массив с данными
+          
+          setJoin(joinData);
+          console.log('After setJoin, join state should be updated');
+          
+          // Проверим сразу после установки (но setState асинхронный)
+          setTimeout(() => {
+            console.log('Join state after set (via setTimeout):', joinData);
+          }, 100);
+          
+        } catch (joinError) {
+          console.error("Error loading joins:", joinError);
+          setJoin([]);
+        }
+      }
+
+    } catch (error) {
+      console.error("error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (id) {
+    loadAllData();
+  }
+}, [id, isAdmin]);
+
+  const requestGuild = async() => {
+    await guildApi.joinGuild(id);
+  }
+
   useEffect(() => {
     if (descRef.current) {
       setIsOverflowing(descRef.current.scrollHeight > 60);
@@ -116,13 +186,13 @@ export default function GuildDetailPage() {
     }
   };
 
-const join = () => {
-  console.log('sent')
+  const kickuser = async() => {
+    await guildApi.kickUser(userid, id);
+    navigate('/guilds')
+  }
 
-}
-  const bannerUrl = iconguild;
   const topBannerStyle = {
-    backgroundImage: `url(${bannerUrl})`,
+    backgroundImage: `url(${guildCover})`,
     position: 'absolute',
     top: 0,
     left: 0,
@@ -134,6 +204,26 @@ const join = () => {
     WebkitMaskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)',
     maskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)'
   };
+
+  const DenyJoin = async(joinId) => {
+    await guildApi.DenyJoin(joinId);
+    const updatedJoins = joinusers.filter(join => join.id !== joinId);
+    setJoin(updatedJoins);
+    await getmembers();
+
+  }
+  const AcceptJoin = async(joinId) => {
+    await guildApi.AcceptJoin(joinId);
+    const updatedJoins = joinusers.filter(join => join.id !== joinId);
+    setJoin(updatedJoins);
+    await getmembers();
+    
+  }
+  const getmembers = async() => {
+    const guildData = await guildApi.getGuild(id);
+    setMembers(guildData.members);
+
+  }
 
   return (
     <div className={styles.container}>
@@ -181,13 +271,18 @@ const join = () => {
               <div className={styles.menuItem} onClick={() => navigate(`/guild-settings/${id}`)}>Guild settings</div>
             </div>
             }
+            {isMember &&
 
              <div className={styles.dpopitem}>
               <img src={exit} alt="" />
-              <div className={styles.menuItem}>Leave guild</div>
+              <div className={styles.menuItem}
+              onClick={() => kickuser()}
+              >Leave guild</div>
             </div>
+            }
           </div>
-        )}
+
+)}
         </div>
 
         </div>
@@ -195,7 +290,7 @@ const join = () => {
 
         <div className={styles.card}>
           <div className={styles.head}>
-            <img src={iconguild} alt="" className={styles.avatar} />
+            <img src={guildImg} alt="" className={styles.avatar} />
             <div className={styles.headtext}>
               <h1 className={styles.title}>{guild?.name || title}</h1>
               <div className={styles.usersdiv}>
@@ -215,40 +310,96 @@ const join = () => {
               </p>
             )}
           </div>
-          <div className={styles.savebutton}>
-            <button className={styles.active} onClick={() => join()}>Submit a request</button>
+          {!isMember &&
+            <div className={styles.savebutton}>
+            <button className={styles.active} onClick={() => requestGuild()}>Submit a request</button>
           </div>
+          }
         </div>
 
-        <div className={styles.item}>
+        <div className={styles.item} style={{position:'relative',}}>
           <div className={styles.btncont}>
             <button className={navMethod === 0 ? styles.active : ""} onClick={() => setNavMethod(0)}>Guild Acts</button>
-            <button className={navMethod === 1 ? styles.active : ""} onClick={() => setNavMethod(1)}>Members</button>
+            <button className={navMethod === 1 ? styles.active : ""} onClick={() => setNavMethod(1)}>
+              Members
+              {isAdmin && joinusers.length > 0 &&
+                <div style={{background:'#E74209', borderRadius:'8px',}}>
+                  +{joinusers.length}
+                </div>
+              }
+            </button>
             <button className={navMethod === 2 ? styles.active : ""} onClick={() => setNavMethod(2)}>Achievements</button>
           </div>
         </div>
         <div className={styles.parentnav}>
 
         {navMethod === 1 && (
-          <div className={styles.cardcont}>
+          
+          <div className={styles.cardcont} >
+              {isAdmin && joinusers.length > 0 &&
+                <>
+                <p style={{color:'#cecece',}}>Potential guilders</p>
+
+            {joinusers.map((member) => (
+              <div key={member.id} className={styles.members} style={{display:'flex', flexDirection:'column', }}>
+                <div className={styles.members} style={{width:'100%', backgroundColor:'transparent', border:'none',}}>
+                <div className={styles.rankBadge}>
+                  <img src={member.user.avatarUrl || userimg} alt="avatar" className={styles.rankImg} />
+                </div>
+                <div style={{display:'flex', justifyContent:'space-between', width:'100%',}}>
+                  
+                <div className={styles.cardInfo}>
+                  <p className={styles.userName}>{member.user.login || 'no name'}</p>
+                  <p className={styles.userName} style={{ color: member.status === 'ACTIVE' ? '#00F300' : '#c0c0c0' }}>
+                    {member.status == 'ACTIVE'?
+                     <span>online</span>
+                      : <span>offline</span>
+                    }
+                  </p>
+                </div>
+                <img src={guildmenu} alt="" style={{maxHeight:'24px',}}/>
+                </div>
+
+                </div>
+
+                 <div className={styles.btncont} style={{width:'100%',}}>
+                  <button className={styles.active} onClick={() => AcceptJoin(member.id)}>To accept</button>
+                  <button  onClick={() => DenyJoin(member.id)}>Deny</button>
+                </div>
+              </div>
+
+            ))}
+                </>
+
+              }
+
+          <div style={{marginTop: joinusers.length > 0 ? '20px' : '0px', display:'flex', flexDirection:'column', gap:'10px',}}>
+               <p style={{color:'#cecece',}}>Guild members</p>
+
             {members.map((member) => (
               <div key={member.id} className={styles.members}>
                 <div className={styles.rankBadge}>
-                  <img src={member.avatar} alt="avatar" className={styles.rankImg} />
+                  <img src={member.avatarUrl || userimg} alt="avatar" className={styles.rankImg} />
                 </div>
                 <div className={styles.cardInfo}>
-                  <p className={styles.userName}>{member.user}</p>
-                  <p className={styles.userName} style={{ color: member.status === 'online' ? '#00F300' : '#c0c0c0' }}>
-                    {member.status}
+                  <p className={styles.userName}>{member.login || 'no name'}</p>
+                  <p className={styles.userName} style={{ color: member.status === 'ACTIVE' ? '#00F300' : '#c0c0c0' }}>
+                    {member.status == 'ACTIVE'?
+                     <span>online</span>
+                      : <span>offline</span>
+                    }
                   </p>
                 </div>
               </div>
             ))}
+            </div>
           </div>
         )}
 
         {navMethod === 2 && (
           <div className={styles.achivemenets}>
+            { achivemenets.length != 0 ?
+            <>
             <div className={styles.cardcontfirst}>
               <p className={styles.title} style={{ fontSize: '18px', margin: '0px' }}>Best achievements</p>
               {achivemenets.filter(a => a.isBest).map((achive) => (
@@ -269,6 +420,7 @@ const join = () => {
                   </div>
                 </div>
               ))}
+              
             </div>
 
             <div className={styles.cardcont} style={{ marginTop: '20px' }}>
@@ -291,6 +443,13 @@ const join = () => {
                 </div>
               ))}
             </div>
+            </>
+           : <div className={styles.cardcontfirst}>
+           
+                 <p className={styles.title} style={{ fontSize: '18px', margin: 'auto' }}>No achievements</p>
+            </div>
+            }
+
           </div>
         )}
         {navMethod === 0 && (

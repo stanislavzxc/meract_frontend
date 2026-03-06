@@ -1,17 +1,20 @@
 import back from '../../images/arrow-left.png';
+
 import styles from "./RankPage.module.css";
-import logo from '../../images/discord.png';
+import logo from '../../images/user.png';
 import { useNavigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 import points from '../../images/points.png';
 import copy from '../../images/copy.png' ;
 import ActCard from '../acts/components/ActCard';
-
+import { profileApi } from '../../shared/api/profile';
+import { useEffect, useState } from 'react';
 const RankDetails = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const pointsValue = 1000;
     const username = '@xxxkilla';
+    const [userData, setUser] = useState({});
     const acts =
             [
               {
@@ -30,7 +33,21 @@ const RankDetails = () => {
               status:'ONLINE',
             },
             ]
-
+      useEffect(() => {
+            const fetchData = async () => {
+              try {
+                const data = await profileApi.getUserById(id);
+                console.log(data, 'acts!!!!!!!!!!!!!')
+                setUser(data)
+              } catch (error) {
+                console.error("err", error);
+              } finally {
+                setLoading(false);
+              }
+            };
+        
+            fetchData();
+          }, []); 
    const copyText = () => {
   navigator.clipboard.writeText(username).then(() => {
     // alert(`Copied: ${username}`);
@@ -60,12 +77,12 @@ const RankDetails = () => {
               </div>
               <div className={styles.parent}>
                 <div className={styles.profile}>
-                    <img src={logo} alt="" className={styles.logo}/>
-                    <p className={styles.title}>Name</p>
+                    <img src={userData.avatarUrl || logo} alt="" className={styles.logo}/>
+                    <p className={styles.title}>{userData.fullName || 'no name'}</p>
                     <p className={styles.subtitle}>last online 5 minuts ago</p>
                      <div className={styles.pointsWrapper}>
                                     <img src={points} alt="points" />
-                                    <p style={{color:'white'}}>{pointsValue}</p>
+                                    <p style={{color:'white'}}>{userData.points}</p>
                                   </div>
                 </div>
               </div>
@@ -82,10 +99,10 @@ const RankDetails = () => {
                             <p className={styles.subtitle}>0 Achievements</p>
                           </div>
               
-                          <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org">
+                           <svg className={styles.arrowIcon} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                                          <polyline points="9 18 15 12 9 6"></polyline>
+                                        </svg>
 
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                          </svg>
                         </div>
               </div>
              <div className={styles.cardwrap}>
@@ -93,7 +110,7 @@ const RankDetails = () => {
   <div className={styles.card} >
     <div className={styles.cardInfo}>
       <p className={styles.userName}>Location</p>
-      <p className={styles.subtitle}>Japan, Tokio</p>
+      <p className={styles.subtitle}>{userData.country || 'no country'} {userData.city || 'no city'}</p>
     </div>
   </div>
 
@@ -101,7 +118,9 @@ const RankDetails = () => {
   <div className={styles.card} >
     <div className={styles.cardInfo}>
       <p className={styles.userName} style={{ color: 'rgba(255, 255, 255, 0.8)' }}>Local time</p>
-      <p className={styles.subtitle} style={{ color: 'white' }}>11:00 <span className={styles.subtitle}>(UTC + 3:00)</span></p>
+      {/* <p className={styles.subtitle} style={{ color: 'white' }}>11:00 <span className={styles.subtitle}>(UTC + 3:00)</span></p> */}
+      <p className={styles.subtitle} style={{ color: 'white' }}><span className={styles.subtitle}>({userData.timeZone})</span></p> 
+    
     </div>
   </div>
 
@@ -111,11 +130,11 @@ const RankDetails = () => {
     <p className={styles.subtitle}>Language</p>
     <div className={styles.languageBox}>
       {/* SVG иконка флага Японии */}
-      <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org">
+      {/* <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org">
         <circle cx="8" cy="8" r="8" fill="white"/>
         <circle cx="8" cy="8" r="3.5" fill="#BC002D"/>
-      </svg>
-      <p className={styles.userName}>Japanese</p>
+      </svg> */}
+      <p className={styles.userName}>{userData.communicationLanguages.join(', ')}</p>
     </div>
   </div>
 </div>
@@ -129,7 +148,7 @@ const RankDetails = () => {
               
                           <div className={styles.cardInfo}>
                             <p className={styles.subtitle}>Username</p>
-                            <p className={styles.userName}>{username}</p>
+                            <p className={styles.userName}>{userData.login}</p>
                           </div>
               
                           <img 

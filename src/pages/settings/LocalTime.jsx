@@ -1,33 +1,39 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect } from 'react';
 import back from '../../images/arrow-left.png';
 import styles from "./SettingsPage.module.css";
 import selected from '../../images/yes.png';
-
+import { profileApi } from '../../shared/api/profile';
 const LocalTime = () => {
     const navigate = useNavigate();
-
-    // Состояние теперь хранит ID только одного выбранного часового пояса
+    const {name} = useParams();
     const [selectedId, setSelectedId] = useState(1);
 
-    const timeZones = [
-        { id: 1, label: '12:00' },
-        { id: 2, label: '11:00'},
-        { id: 3, label: '10:00' },
-        { id: 4, label: '9:00'},
-        { id: 5, label: '8:00' },
-        { id: 6, label: '7:00' },
-        { id: 7, label: '6:00' },
-        { id: 8, label: '5:00' },
-        { id: 9, label: '4:00' },
-        { id: 10, label: '3:00' },
-        { id: 11, label: '2:00' }
-
-    ];
-
-    const handleSelect = (id) => {
-        setSelectedId(id);
-    };
+    const [timeZones, setTimeZones] = useState([]);
+    const [selectedZone, setSelectedZone] = useState(name || ''); 
+    
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+            const data = await profileApi.getTimezone();
+            setTimeZones(data.zones);
+            console.log(data, 'localllllllll');
+    
+            } catch (error) {
+            console.error("Ошибка при загрузке:", error);
+            }
+        };
+        fetchData();
+    }, [])
+    const handleSelect = async (zone) => {
+    setSelectedZone(zone); 
+    try {
+        await profileApi.updateTimezone(zone);
+    } catch (e) {
+        console.error("error:", e);
+    }
+};
 
     return (
         <div className={styles.container}>
@@ -47,26 +53,27 @@ const LocalTime = () => {
             </div>
 
             <div className={styles.cardwrapmain}>
-                {timeZones.map((item) => (
-                    <div 
-                        key={item.id} 
-                        className={styles.cardcont} 
-                        onClick={() => handleSelect(item.id)}
-                    >
-                        <div className={styles.card}>
-                            <div className={styles.cardInfo}>
-                                <p className={styles.userName}>UTC -{item.label}</p>
-                            </div>
-                            
-                            <div className={styles.selectionArea}>
-                                {selectedId === item.id && (
-                                    <img src={selected} alt="selected" className={styles.selectedIcon} />
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                ))}
+    {timeZones.map((item, index) => (
+        <div 
+            key={index} 
+            className={styles.cardcont} 
+            onClick={() => handleSelect(item)} 
+        >
+            <div className={styles.card}>
+                <div className={styles.cardInfo}>
+                    <p className={styles.userName}>{item}</p>
+                </div>
+                
+                <div className={styles.selectionArea}>
+                    {selectedZone === item && (
+                        <img src={selected} alt="selected" className={styles.selectedIcon} />
+                    )}
+                </div>
             </div>
+        </div>
+    ))}
+</div>
+
         </div>  
     );
 };

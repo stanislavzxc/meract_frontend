@@ -2,27 +2,85 @@ import { useNavigate } from "react-router-dom";
 import default_back from '../../../images/act_back_default.png';
 import styles from "./ActCard.module.css";
 import star from '../../../images/star.png';
+import { actApi } from "../../../shared/api/act";
+import { useEffect, useState } from "react";
 export default function ActCard({ act, titleact }) {
   const navigate = useNavigate();
+  const id = act.id;
+// 1. ОБЪЯВЛЯЕМ ВСЕ ПЕРЕМЕННЫЕ ЧЕРЕЗ USESTATE
+const [isLive, setIsLive] = useState(null);
+const [title, setTitle] = useState('');
+const [description, setDescription] = useState('');
+const [heroes, setHeroes] = useState('no heroes');
+const [navigator, setNavigator] = useState('no navigators');
+const [location, setLocation] = useState('no location');
+const [distance, setDistance] = useState('no distance');
+const [rating, setRating] = useState(0.0);
+let finalImage;
+const [rawImageUrl, setRawImageUrl] = useState(null);
+const [achivemenets, setAchivemenets] = useState([]); 
+const [navMethod, setNavMethod] = useState(1);
+const [loading, setLoading] = useState(true);
 
-  const isLive = act.status;
-  const title = act.name || act.title;
-  const description = act.description;
-  const heroes = 'Heroes: Graphite8, EPICA, Moment';
-  const navigator = 'Graphite8, Grinar, Levina ';
-  const location = 'Tokyo, Japan';
-  const distance = 1000;
-  const rating = 9.5;
-  let rawImageUrl = act.imageUrl || act.previewFileName;
-  let finalImage;
+useEffect(() => {
+  const loadAllData = async () => {
+    try {
+      setLoading(true);
+      const actsdata = await actApi.getAct(id);
+      if (actsdata) {
+        setIsLive(actsdata.status);
+        setTitle(actsdata.title || actsdata.name || 'Untitled');
+        setDescription(actsdata.description || 'No description');
+        
+        setHeroes(Array.isArray(actsdata.heroes) ? actsdata.heroes.join(', ') : 'no heroes');
+        setNavigator(Array.isArray(actsdata.navigators) ? actsdata.navigators.join(', ') : 'no navigators');
+        
+        if (actsdata.initiator) {
+          setLocation(`${actsdata.initiator.city || ''}, ${actsdata.initiator.country || ''}`);
+        }
 
-  if (!rawImageUrl) {
-    finalImage = default_back;
-  } else if (rawImageUrl.startsWith('http')) {
-    finalImage = rawImageUrl;
-  } else {
-    finalImage = `https://meract.com${rawImageUrl}`;
+        setDistance(actsdata.distanceKm || 'no distance');
+        setRating(actsdata.rating || 0.0);
+        setRawImageUrl(actsdata.previewFileName);
+        console.log(actsdata, '!!!!!!!!!!!!!!!!!!!!!')
+        if (actsdata.tasks) {
+          setAchivemenets(actsdata.tasks); 
+        }
+
+        if (actsdata.navigatorMethods === "VOTING") {
+          setNavMethod(2);
+        }
+      }
+      if(id == 28){
+        console.log( actsdata,'data!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+      }
+    } catch (error) {
+      console.error("Ошибка при загрузке API:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (id) {
+    loadAllData();
   }
+}, [id]);
+
+
+
+
+ if (!rawImageUrl) {
+  finalImage = default_back;
+} else if (rawImageUrl.startsWith('http://') || rawImageUrl.startsWith('https://')) {
+  // Если сервер уже прислал полный URL (как в вашем логе), используем его как есть
+  finalImage = rawImageUrl;
+} else {
+  // Если пришел относительный путь (начинается с /uploads), клеим базовый URL
+  // Убедитесь, что здесь правильный домен (meract.com или localhost)
+  const baseUrl = import.meta.env.VITE_API_URL || 'https://meract.com'; 
+  finalImage = `${baseUrl}${rawImageUrl.startsWith('/') ? '' : '/'}${rawImageUrl}`;
+}
+
 
   const cardStyle = {
     backgroundImage: `url(${finalImage})`,

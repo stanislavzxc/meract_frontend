@@ -553,3 +553,11 @@
     background-color: #E74209;
     color: white;
 }
+.inputError {
+    border: 1px solid #ff4d4d !important;
+    background-color: rgba(255, 77, 77, 0.05); 
+}
+
+.inputError::placeholder {
+    color: #ff4d4d;
+}

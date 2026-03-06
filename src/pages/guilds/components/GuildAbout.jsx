@@ -3,13 +3,47 @@ import arrowLeft from '../../../images/arrow-left.png';
 import { useNavigate } from "react-router-dom";
 import { useParams } from 'react-router-dom';
 import iconguild from '../../../images/iconguild.png'; 
+import { guildApi } from '../../../shared/api/guild';
+import { useEffect, useState } from 'react';
 
  const GuildAbout = () => {
     const { id } = useParams();
-    const name = 'name';
-    const date = '10.11.2025';
-    const description = 'description here description heredescription heredescription heredescription heredescription heredescription heredescription heredescription here';
-    const members = 1000;
+// ... внутри компонента
+const [title, setTitle] = useState('Loading...');
+const [date, setDate] = useState('Loading...'); 
+const [guildDescription, setGuildDescription] = useState('Loading...');
+const [usersCount, setUsersCount] = useState(0);
+const [guildImg, setGuildImg] = useState(null);
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+    const loadAllData = async () => {
+        try {
+            setLoading(true);
+            const guildData = await guildApi.getGuild(id);
+
+            if (guildData) {
+                setTitle(guildData.name || 'No Name');
+                setGuildDescription(guildData.description || 'No description provided');
+                setUsersCount(guildData.members?.length || 0);
+                setGuildImg(guildData.logoFileName);
+                
+                if (guildData.createdAt) {
+                    setDate(new Date(guildData.createdAt).toLocaleDateString());
+                }
+            }
+        } catch (error) {
+            console.error("Ошибка при загрузке гильдии:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (id) {
+        loadAllData();
+    }
+}, [id]); 
+
   const navigate = useNavigate();
    return (
      <div className={styles.container}>
@@ -22,8 +56,8 @@ import iconguild from '../../../images/iconguild.png';
        <div className={styles.paragraph}>
          <h3 className={styles.elsetitle}>Guild</h3>
          <div style={{display:'flex', gap:'10px', alignItems:'center',}}>
-            <img src={iconguild} alt=''className={styles.iconguild}/>
-            <p className={styles.elsetitle}>{name}</p>
+            <img src={guildImg || iconguild} alt=''className={styles.iconguild}/>
+            <p className={styles.elsetitle}>{title}</p>
          </div>
        </div>
        <div className={styles.paragraph}>
@@ -32,11 +66,11 @@ import iconguild from '../../../images/iconguild.png';
        </div>
        <div className={styles.paragraph}>
          <h3 className={styles.elsetitle}>Description</h3>
-         <p className={styles.subtitle}>{description}</p>
+         <p className={styles.subtitle}>{guildDescription}</p>
        </div>
        <div className={styles.paragraph}>
          <h3 className={styles.elsetitle}>Members</h3>
-         <p className={styles.subtitle}>{members}</p>
+         <p className={styles.subtitle}>{usersCount} members</p>
        </div>
      
      </div>

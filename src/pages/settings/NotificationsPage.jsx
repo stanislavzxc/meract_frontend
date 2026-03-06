@@ -2,21 +2,56 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import back from '../../images/arrow-left.png';
 import styles from "./SettingsPage.module.css";
-
+import { useEffect } from 'react';
+import { profileApi } from '../../shared/api/profile';
 const NotificationsPage = () => {
     const navigate = useNavigate();
 
     const [notifs, setNotifs] = useState({
-        all: false,
-        progress: false,
-        guild: true,
-        mentions: false,
-        updates: false
-    });
+    all: true,
+    progress: true,
+    guild: true,
+    mentions: true,
+    updates: true
+});
 
-    const toggleNotif = (key) => {
-        setNotifs(prev => ({ ...prev, [key]: !prev[key] }));
+useEffect(() => {
+    const fetchData = async () => {
+        try {
+            const data = await profileApi.getNotice();
+            console.log(data, 'dataaaa');
+
+            setNotifs({
+                all: data.notifyAll,
+                progress: data.notifyActProgress,
+                guild: data.notifyGuildInvites,
+                mentions: data.notifyChatMentions,
+                updates: data.notifyActStatusRealtime 
+            });
+
+        } catch (error) {
+            console.error("Ошибка при загрузке:", error);
+        }
     };
+
+    fetchData();
+}, []);
+
+
+
+    const toggleNotif = async (key) => {
+        const nextState = { ...notifs, [key]: !notifs[key] };
+        
+        setNotifs(nextState);
+        
+        try {
+            await profileApi.updateNotice(nextState);
+        } catch (error) {
+            console.error("Не удалось обновить настройки:", error);
+            setNotifs(notifs); 
+        }
+};
+
 
     const notificationList = [
         { id: 'all', label: 'All notifications' },

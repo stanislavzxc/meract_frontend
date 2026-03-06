@@ -5,15 +5,16 @@ import back from '../../images/arrow-left.png';
 import plus from '../../images/add.png';
 
 import { useRef } from "react";
+import { chatApi } from "../../shared/api/chat";
 export default function ChatCreate() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState(null);
   const avatarInputRef = useRef(null);
 
-  const Save = () => {
-    console.log({ category, location });
-    navigate('/rank');
+  const Save = async() => {
+    await chatApi.createChat(1); 
+    navigate('/chats');
   };
     const handleFileChange = (e, setter) => {
         const file = e.target.files[0];

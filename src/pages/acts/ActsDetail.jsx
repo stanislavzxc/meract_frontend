@@ -12,12 +12,15 @@ import userimg from '../../images/user.png';
 import sound from '../../images/Sound.png';
 import star from '../../images/star.png';
 import share from'../../images/sharewhite.png';
+import { actApi } from "../../shared/api/act";
+import { useSoundStore } from "../../shared/stores/soundStore";
 export default function ActDetail(act) {
   const { id } = useParams();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const isAdmin = true;
-
+const { soundStates, toggleSound } = useSoundStore();
+let isEnabled = !!soundStates[id];
   const [guild, setGuild] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isMember, setIsMember] = useState(false);
@@ -43,30 +46,55 @@ const maxNavPercent = Math.max(...navigators.map(a => parseFloat(a.percent) || 0
 
 const maxHeroPercent = Math.max(...heroes.map(a => parseFloat(a.percent) || 0));
 
-  const isLive = act.status;
-  const title = act.name || act.title || 'act name';
-  const description = act.description || 'zxcvzxcvxzcvxzcvzxcvxzcvzxcvzxcvxzcvxzcvzxcvxzcvzzxcvzы';
-  const seasons = '1';
-  const date = '2025';
-  const rating = 9.5;
-  const genre = ['Horror', 'Triller'];
-  const time = '5 min'; 
+  const [isLive, setIsLive] = useState('');
+  const [title, setTitle] = useState('Loading');
+  const [description, setDescription] = useState('loading');
+  const [seasons, setSeasons] = useState('');
+  const [date, setDate] = useState('');
+  const [rating, setRating] = useState(0);
+  const [genre, setGenre] = useState([]);
+  const [time, setTime] = useState('0 min');
 
   useEffect(() => {
-    const fetchGuildDetails = async () => {
+    const fetchActDetails = async () => {
       try {
-        const response = await api.get(`/guild/${id}`);
-        setGuild(response.data);
-        const userIsMember = response.data.members?.some(m => m.id === user?.id || m.userId === user?.id) || response.data.ownerId === user?.id;
-        setIsMember(userIsMember);
+        const data = await actApi.getAct(id);
+        console.log(data);
+
+        if (data) {
+          // 2. Связываем данные из API со стейтами
+          setIsLive(data.status);
+          setTitle(data.title || 'Untitled');
+          setDescription(data.description || act.description ||'No description available');
+          
+          // Если есть дата старта, вырезаем год
+          if (data.startedAt) {
+            setDate(new Date(data.startedAt).getFullYear().toString());
+          }
+
+          // Если жанры/теги приходят в массиве tags
+          if (data.tags) {
+            setGenre(data.tags.map(t => t.name || t));
+          }
+
+          // Рассчитываем время (разница между startedAt и endedAt в минутах)
+          if (data.startedAt && data.endedAt) {
+            const diff = Math.round((new Date(data.endedAt) - new Date(data.startedAt)) / 60000);
+            setTime(`${diff} min`);
+          }
+          
+          
+
+// Рейтинг (если есть поле likes или рейтинг в API)
+          setRating(data.likes || 0); 
+        }
       } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
+        console.error("Ошибка загрузки акта:", error);
+      } 
     };
-    fetchGuildDetails();
-  }, [id, user?.id]);
+    
+    if (id) fetchActDetails();
+  }, [id]);
 
   
   const handlenavigatorClick = (clickedNav) => {
@@ -132,34 +160,27 @@ const join = () => {
       <div style={topBannerStyle} />
 
       <div className={styles.contentWrapper}>
-        <div className={styles.header}>
-          <div className={styles.backButton} onClick={() => navigate("/acts")}>
-            <img src={arrowLeft} alt="Back" className={styles.backIcon} />
-        </div>
+          <div className={styles.header}>
+            <div className={styles.backButton} onClick={() => navigate("/acts")}>
+                <img src={arrowLeft} alt="Back" className={styles.backIcon} />
+            </div>
 
-        <div className={styles.menuContainer}>
-        <img 
-          src={sound} 
-          alt="" 
-          className={styles.menuIcon} 
-          
-        />
-        <img 
-          src={share} 
-          alt="" 
-          className={styles.menuIcon} 
-          
-        />
-        
-        
-        </div>
-
+            <div className={styles.menuContainer}>
+                <img 
+                    src={sound} 
+                    alt="Sound" 
+                    className={`${styles.menuIcon} ${isEnabled ? styles.activeIcon : ""}`} 
+                    onClick={() => toggleSound(id)} 
+                />
+                <img src={share} alt="Share" className={styles.menuIcon} />
+            </div>
         </div>
 
 
-        <div className={`${styles.card} ${styles.firstcard}`}>
 
-          <div className={styles.infoblock}>
+        <div className={`${styles.card} ${styles.firstcard}`} >
+
+          <div className={styles.infoblock} style={{width:'100%',}}>
                       <div className={styles.inner}>
                         {isLive === 'ONLINE' && (
                           <div className={styles.online}> 

@@ -11,24 +11,26 @@ import filter from '../../images/setting.png';
 import search from '../../images/search.png';
 import Menu from '../Menu/Menu.jsx';
 import thumb from '../../images/thumb.png';
+import { actApi } from "../../shared/api/act.js";
+
 const locations = ["Japan", "Spain", "Russia", 'Kazahstan', 'USA'];
 
 export default function ActsPage() {
   const [acts, setActs] = useState([
-    {
-      id: 1,
-      title: "Voices in the Crowd",
-      description: "Lorem ipsum is a dummy text",
-      navigator: "Graphite8",
-      heroes: ["Graphite8", "NeonFox"],
-      location: "Spain",
-      distance: "2,500km Away",
-      upvotes: 12,
-      downvotes: 12,
-      liveIn: "2h 15m",
-      isMock: true,
-      status: 'ONLINE',
-    },
+    // {
+    //   id: 1,
+    //   title: "Voices in the Crowd",
+    //   description: "Lorem ipsum is a dummy text",
+    //   navigator: "Graphite8",
+    //   heroes: ["Graphite8", "NeonFox"],
+    //   location: "Spain",
+    //   distance: "2,500km Away",
+    //   upvotes: 12,
+    //   downvotes: 12,
+    //   liveIn: "2h 15m",
+    //   isMock: true,
+    //   status: 'ONLINE',
+    // },
   ]);
 
   const [loading, setLoading] = useState(false);
@@ -40,38 +42,27 @@ export default function ActsPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
+        const fetchData = async () => {
+          try {
+            const data = await actApi.getAllActs();
+            console.log(data, 'acts!!!!!!!!!!!!!')
+            setActs(data);
+          } catch (error) {
+            console.error("Ошибка при загрузке:", error);
+          } finally {
+            setLoading(false);
+          }
+        };
+    
+        fetchData();
+      }, []); 
+
+  useEffect(() => {
     localStorage.removeItem("createActFormState");
     clearAll();
   }, [clearAll]);
 
-  useEffect(() => {
-    setLoading(true);
-    api.get("/act/get-acts")
-      .then((res) => {
-        if (Array.isArray(res.data)) {
-          setActs((prev) => [
-            prev[0],
-            ...res.data.map((act) => ({
-              ...act,
-              title: act.name,
-              description: act.status,
-              navigator: act.user,
-              location: act.category,
-              distance: act.duration,
-              upvotes: 0,
-              downvotes: 0,
-              liveIn: act.duration,
-              isMock: false,
-            })),
-          ]);
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        setError("Error loading acts");
-        setLoading(false);
-      });
-  }, []);
+
 
   return (
     <div className={styles.container}>
@@ -142,6 +133,9 @@ export default function ActsPage() {
               <ActCard key={index} act={act} titleact={true} />
             ))}
           </div>
+          {acts.length == 0 &&
+             <div className="name" style={{display:'contents',}}><h1>No acts</h1></div>
+          }
         </div>
         
         <NavBar />

@@ -653,3 +653,13 @@ flex-direction: column;
 .savecard h3{
  color: #0093FF;
 }
+.menuIcon {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+
+.activeIcon {
+  opacity: 1 !important;
+  filter: drop-shadow(0 0 5px #ff1e01) brightness(1.2);
+}

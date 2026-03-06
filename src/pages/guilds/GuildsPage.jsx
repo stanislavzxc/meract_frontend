@@ -8,30 +8,31 @@ import notification from '../../images/notification.png';
 import filter from '../../images/setting.png';
 import search from '../../images/search.png';
 import Menu from '../Menu/Menu.jsx';
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { guildApi } from "../../shared/api/guild.js";
 export default function GuildsPage() {
   const { guild, loading, error } = useUserGuild();
   const navigate = useNavigate();  
   let [isOpen, setIsOpen] = useState(false);
   
- const [guilds, setGuilds] = useState([
-    {
-      id: 1,
-      title: "Voices in the Crowd",
-      description:
-        "Lorem ipsum is a dummy or placeholder text commonly used in graphic design, publishing",
-      navigator: "Graphite8",
-      heroes: ["Graphite8", "NeonFox", "ShadowWeave", "EchoStorm1"],
-      location: "Puerto de la Cruz (ES)",
-      distance: "2,500km Away",
-      upvotes: 12,
-      downvotes: 12,
-      liveIn: "2h 15m",
-      isMock: true,
-      status:'ONLINE',
-    },
-  ]);
+ const [guilds, setGuilds] = useState([]);
+
+  useEffect(() => {
+      const fetchData = async () => {
+        try {
+          const data = await guildApi.getAllGuilds();
+          console.log(data, 'guildsssssss')
+          setGuilds(data);
+        } catch (error) {
+          console.error("Ошибка при загрузке:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+  
+      fetchData();
+    }, []); 
   const handleSortChange = (option) => {
     console.log("Selected sort option:", option);
   };

@@ -11,10 +11,33 @@ import settings from '../../images/guildsetting.png';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/Auth/Login/hooks/useAuth';
+import { profileApi } from '../../shared/api/profile';
+import { useEffect } from 'react';
 const Menu = ({ onClose }) => {
-    const username = 'Agent Smith';
+    const [username, setName] = useState('loading');
+    const [fullname, setFullName] = useState('loading');
+    const [userimg, setImg] = useState();
     const navigate = useNavigate();
     const {signOut} = useAuth();
+
+    useEffect(() => {
+    const loadAllData = async () => {
+        try {
+            const guildData = await profileApi.getProfile();
+            console.log(guildData);
+            if (guildData) {
+                setName(guildData.login)
+                setFullName(guildData.fullName)
+                setImg(guildData.avatarUrl);
+         }
+        } catch (error) {
+            console.error("Ошибка при загрузке гильдии:", error);
+        } 
+    };
+loadAllData();
+    
+}, []); 
+
     const Dologout = () =>{
          onClose();
          signOut();
@@ -38,12 +61,12 @@ const Menu = ({ onClose }) => {
                     </div>
                         <div className={styles.card}>
                                 <div className={styles.rankBadge}>
-                                  <img src={avatar} alt="rank" className={styles.rankImg} />
+                                  <img src={userimg || avatar} alt="rank" className={styles.rankImg} />
                                 </div>
                     
                                 <div className={styles.cardInfo}>
+                                  <p className={styles.userName}>{fullname}</p>
                                   <p className={styles.userName}>{username}</p>
-                                  <p className={styles.userName}>'asdasdas'</p>
                                  
                                 </div>
                     

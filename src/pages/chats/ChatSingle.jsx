@@ -10,25 +10,46 @@ import sendIcon from '../../images/send.png';
 import microphone from '../../images/microphone.png';
 import trashIcon from '../../images/trash1.png';
 import notificationIcon from '../../images/notification.png';
+import { chatApi } from '../../shared/api/chat';
 
 const ChatSingle = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id, userId } = useParams();
   
   const [text, setText] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [mode, setMode] = useState('send'); // 'send' или 'mic'
+  const [mode, setMode] = useState('send'); 
   const [isRecording, setIsRecording] = useState(false);
-  const [messages, setMessages] = useState([
-    { id: 1, text: 'asdfasdfasdfasd', sender: 'companion', time: '12:40' },
-    { id: 2, text: 'dsfasdfasdf.', sender: 'me', time: '12:42' },
-  ]);
+  const [messages, setMessages] = useState([]);
 
   const mediaRecorder = useRef(null);
   const audioChunks = useRef([]);
-  const card = { user: 'xxxkilla', time: 5 };
+  const [card, setUser] = useState({});
 
-  // Закрытие меню по клику вне его
+  useEffect(() => {
+  const fetchChatData = async () => {
+    try {
+      const [messagesData, chatInfo] = await Promise.all([
+        chatApi.getMessages(id),
+        chatApi.getAll(userId)
+      ]);
+      const profiledata = chatInfo.find(chat => chat.id == id)
+      setMessages(messagesData);
+      setUser(profiledata.partner); 
+      
+      console.log('Сообщения:', messagesData);
+      console.log('Данные чата:', chatInfo);
+    } catch (error) {
+      console.error('Ошибка при загрузке данных чата:', error);
+    }
+  };
+
+  if (id) { 
+    fetchChatData();
+  }
+}, [id]); 
+
+
   useEffect(() => {
     const closeMenu = () => setIsMenuOpen(false);
     if (isMenuOpen) {
@@ -37,6 +58,7 @@ const ChatSingle = () => {
     return () => window.removeEventListener('click', closeMenu);
   }, [isMenuOpen]);
 
+  
   // Логика отправки сообщения
   const pushMessage = (content) => {
     const now = new Date();
@@ -125,10 +147,10 @@ const ChatSingle = () => {
             onClick={() => navigate(`/rank/${id}`)}
           >
             <div className={styles.rankBadge}>
-              <img src={userimg} alt="avatar" className={styles.rankImg} />
+              <img src={card.avatarUrl || userimg} alt="avatar" className={styles.rankImg} />
             </div>
             <div className={styles.cardInfo}>
-              <p className={styles.userName}>{card.user}</p>
+              <p className={styles.userName}>{card.login}</p>
               <p style={{ color: '#bbb', fontSize: '12px', margin: 0 }}>
                 Online {card.time} minutes ago
               </p>

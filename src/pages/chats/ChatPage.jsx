@@ -16,6 +16,8 @@ import back from '../../images/menu.png';
 import Menu from '../Menu/Menu.jsx';
 import NavBar from "../../shared/ui/NavBar/NavBar";
 import userimg from '../../images/user.png';
+import { chatApi } from "../../shared/api/chat.js";
+
 const decodeToken = (token) => {
   try {
     const base64Url = token.split(".")[1];
@@ -34,38 +36,27 @@ export default function ChatPage() {
   const user = useAuthStore((state) => state.user);
   const token = useAuthStore((state) => state.token);
   let [isOpen, setIsOpen] = useState(false);
-  const cards = [
-    { id: 1, user: 'pavel', desc: 'asdasdad', time:'16:00', },
-    { id: 2, user: 'pavel', desc: 'asdadasdad', time:'16:00', },
-  ];
-
+  const [cards, setCards] = useState([]);
+// { id: 1, user: 'pavel', desc: 'asdasdad', time:'16:00', },
+//     { id: 2, user: 'pavel', desc: 'asdadasdad', time:'16:00', },
  
 
 
   useEffect(() => {
     const fetchUserRanks = async () => {
-      let userId = user?.id;
-      if (!userId && token) {
-        const decoded = decodeToken(token);
-        userId = decoded?.sub;
-      }
-      if (!userId) {
-        setLoading(false);
-        return;
-      }
       try {
-        setLoading(true);
-        const response = await api.get(`/rank/user/${userId}`);
-        setRanks(response.data.map((item) => item.rank));
+        const data = await chatApi.getAll();
+        console.log(data)
+        setCards(data)
       } catch (error) {
         console.error(error);
-      } finally {
-        setLoading(false);
-      }
+      } 
     };
     fetchUserRanks();
-  }, [user?.id, token]);
-
+  }, []);
+  const toChat = (type, id, userId) =>{
+    type == 'direct' ? navigate(`/chat/${id}/${userId}`) : navigate(`/acts`) 
+  }
   return (
     <div className={styles.container}>
          {isOpen && <Menu
@@ -108,21 +99,29 @@ export default function ChatPage() {
             key={card.id} 
             className={styles.card} 
             
-            onClick={() => navigate(`/chat/${card.id}`)}
+            onClick={() => toChat(card.type, card.id, card.partner.id)}
 >
             <div className={styles.rankBadge}>
-              <img src={userimg} alt="rank" className={styles.rankImg} />
+              <img src={card.imageUrl || userimg} alt="rank" className={styles.rankImg} />
             </div>
 
             <div className={styles.cardInfo}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                           <p className={styles.userName}>{card.user}</p>
-                           <p style={{ color: 'gray', fontSize: 'smaller' }}>{card.time}</p>
+                           <p className={styles.userName}>{card.name}</p>
+                           <p style={{ color: 'gray', fontSize: 'smaller' }}>
+                              {new Date(card.lastMessageAt).toLocaleTimeString([], { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </p>
+
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             
-                <p style={{color:'#bbb',}}>{card.desc}</p>
-                <div className={styles.circle}>1</div>
+                <p style={{color:'#bbb',}}>{card.lastMessage || 'no messages'}</p>
+                {card.unreadCount > 0 &&
+                  <div className={styles.circle}>{card.unreadCount}</div>
+                }
                 </div>
             </div>
 

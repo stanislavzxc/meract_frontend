@@ -1,30 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import back from '../../images/arrow-left.png';
 import styles from "./SettingsPage.module.css";
-import selected from '../../images/yes.png';
+import selectedIcon from '../../images/yes.png';
+import { profileApi } from '../../shared/api/profile';
 
 const LanguageSelection = () => {
     const navigate = useNavigate();
 
-    const [selectedLanguages, setSelectedLanguages] = useState({
-        1: true 
-    });
+    const [languages, setLanguages] = useState([]);
+    const [selectedLanguages, setSelectedLanguages] = useState({});
 
-    const languages = [
-        { id: 1, label: '🇺🇸 English' },
-        { id: 2, label: '🇪🇸 Español' },
-        { id: 3, label: '🇦🇪 العربية ' },
-        { id: 4, label: '🇵🇹 Português' },
-        { id: 5, label: '🇫🇷 Français' },
-        { id: 6, label: '🇮🇳 Bahasa Indonesia' }
-    ];
+      useEffect(() => {
+    const fetchData = async () => {
+        try {
+            const allLangsRes = await profileApi.getLangs();
+            setLanguages(allLangsRes.languages || []);
 
-    const toggleLanguage = (id) => {
+            const selectedRes = await profileApi.getSelectedlang();
+            
+            const selectedArray = selectedRes.languages; 
+
+            if (Array.isArray(selectedArray)) {
+                const initialSelected = {};
+                selectedArray.forEach(lang => {
+                    initialSelected[lang] = true;
+                });
+                setSelectedLanguages(initialSelected);
+            }
+        } catch (error) {
+            console.error("error", error);
+        }
+    };
+
+    fetchData();
+}, []);
+
+
+    const toggleLanguage = (langName) => {
         setSelectedLanguages(prev => ({
             ...prev,
-            [id]: !prev[id]
+            [langName]: !prev[langName]
         }));
+    };
+
+    const savelang = async () => {
+        const selectedArray = Object.keys(selectedLanguages).filter(
+            (key) => selectedLanguages[key] === true
+        );
+
+        if (selectedArray.length === 0) {
+            alert("Please select at least one language");
+            return;
+        }
+
+        const dataToSend = {
+            languages: selectedArray
+        };
+
+        try {
+            await profileApi.updateLang(dataToSend);
+            navigate('/settings/profile');
+        } catch (error) {
+            console.error("Ошибка при сохранении:", error);
+        }
     };
 
     return (
@@ -34,7 +73,7 @@ const LanguageSelection = () => {
                     <img 
                         src={back} 
                         alt="back" 
-                        onClick={() => navigate('/settings/profile')} 
+                        onClick={savelang} 
                         className={styles.backBtn}
                     />
                     <div className="name">
@@ -45,20 +84,20 @@ const LanguageSelection = () => {
             </div>
 
             <div className={styles.cardwrapmain}>
-                {languages.map((item) => (
+                {languages.map((item, index) => (
                     <div 
-                        key={item.id} 
+                        key={index} 
                         className={styles.cardcont} 
-                        onClick={() => toggleLanguage(item.id)}
+                        onClick={() => toggleLanguage(item)}
                     >
                         <div className={styles.card}>
                             <div className={styles.cardInfo}>
-                                <p className={styles.userName}>{item.label}</p>
+                                <p className={styles.userName}>{item}</p>
                             </div>
                             
                             <div className={styles.selectionArea}>
-                                {selectedLanguages[item.id] && (
-                                    <img src={selected} alt="selected" className={styles.selectedIcon} />
+                                {selectedLanguages[item] && (
+                                    <img src={selectedIcon} alt="selected" className={styles.selectedIcon} />
                                 )}
                             </div>
                         </div>

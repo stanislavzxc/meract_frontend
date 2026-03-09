@@ -1,0 +1,297 @@
+import back from '../../images/arrow-left.png';
+import styles from "../rank/RankPage.module.css";
+import logo from '../../images/user.png';
+import { useNavigate, useParams } from 'react-router-dom';
+import points from '../../images/points.png';
+import copy from '../../images/copy.png';
+import ActCard from '../acts/components/ActCard';
+import { profileApi } from '../../shared/api/profile';
+import { chatApi } from '../../shared/api/chat';
+import { useEffect, useState } from 'react';
+
+const CompanionProfile = () => {
+    const navigate = useNavigate();
+    const { id, userId } = useParams();
+    const [userData, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [acts, setActs] = useState([]);
+    const [images, setImages] = useState([]);
+    const [videos, setVideos] = useState([]);
+    const [nav, setNav] = useState(2);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                
+                // Загружаем данные пользователя и сообщения чата параллельно
+                const [userResponse, chatResponse] = await Promise.all([
+                    profileApi.getUserById(id),
+                    chatApi.getMessages(id)
+                ]);
+
+                console.log('User data:', userResponse);
+                console.log('Chat data:', chatResponse);
+
+                // Данные пользователя
+                const actsArray = userResponse.actIds ? userResponse.actIds.map(actId => ({ id: actId })) : [];
+                setUser(userResponse);
+                setActs(actsArray);
+
+                // Медиа из чата
+                if (chatResponse) {
+                    setImages(chatResponse.images || []);
+                    setVideos(chatResponse.videos || []);
+                }
+
+            } catch (error) {
+                console.error("err", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (id) {
+            fetchData();
+        }
+    }, [id]);
+
+    if (loading || !userData) {
+        return (
+            <div className={styles.container} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'white' }}>
+                Loading...
+            </div>
+        );
+    }
+
+    const copyText = () => {
+        navigator.clipboard.writeText(userData.login).then(() => {
+            // Можно добавить уведомление
+        }).catch(err => {
+            console.error('error:', err);
+        });
+    };
+
+    const sendMessage = () => console.log('a');
+    const sendEcho = () => console.log('a');
+
+    const isOnline = userData.onlineStatus?.toLowerCase() === 'online';
+
+    const handleNavChange = (type) => {
+        setNav(type);
+    };
+
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            year: 'numeric'
+        });
+    };
+
+    return (
+        <div className={styles.container}>
+            <div className={styles.header}>
+                <div className={styles.header_cont}>
+                    <img 
+                        src={back} 
+                        alt="back" 
+                        onClick={() => navigate(`/chat/${id}/${userId}`)} 
+                        style={{ cursor: 'pointer' }} 
+                    />
+                </div>
+            </div>
+            
+            <div className={styles.parent}>
+                <div className={styles.profile}>
+                    <img src={userData.avatarUrl || logo} alt="avatar" className={styles.logo} />
+                    <p className={styles.title}>{userData.fullName || 'No name'}</p>
+                    {isOnline ? (
+                        <p className={styles.subtitle}>Online</p>
+                    ) : userData.onlineStatus ? (
+                        <p className={styles.subtitle}>Last online {userData.onlineStatus} ago</p>
+                    ) : (
+                        <p className={styles.subtitle}>Offline</p> 
+                    )}
+
+                    <div className={styles.pointsWrapper}>
+                        <img src={points} alt="points" />
+                        <p style={{ color: 'white' }}>{userData.points || 0}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div className={styles.cardwrapmain}>
+                <div className={styles.cardcont}>
+                    <div className={styles.card} onClick={() => navigate(`/rank-achive/${id}`)}>
+                        <div className={styles.cardInfo}>
+                            <p className={styles.userName}>Achievements</p>
+                            <p className={styles.subtitle}>0 Achievements</p>
+                        </div>
+                        <svg className={styles.arrowIcon} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </div>
+                </div>
+                
+                <div className={styles.cardwrap}>
+                    <div className={styles.card}>
+                        <div className={styles.cardInfo}>
+                            <p className={styles.userName}>Location</p>
+                            <p className={styles.subtitle}>
+                                {userData.country || 'No country'}, {userData.city || 'No city'}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div className={styles.card}>
+                        <div className={styles.cardInfo}>
+                            <p className={styles.userName}>Local time</p>
+                            {userData.timeZone ? (
+                                <p className={styles.subtitle} style={{ color: 'white' }}>{userData.timeZone}</p>
+                            ) : (
+                                <p className={styles.subtitle} style={{ color: 'white' }}>Not specified</p>
+                            )}
+                        </div>
+                    </div>
+                    
+                    <div className={`${styles.card} ${styles.fullWidthCard}`}>
+                        <div className={styles.cardInfo}>
+                            <p className={styles.subtitle}>Languages</p>
+                            <div className={styles.languageBox}>
+                                <p className={styles.userName}>
+                                    {userData.communicationLanguages?.length > 0 
+                                        ? userData.communicationLanguages.join(', ') 
+                                        : 'No languages'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div className={styles.cardcont}>
+                    <div className={styles.card}>
+                        <div className={styles.cardInfo}>
+                            <p className={styles.subtitle}>Username</p>
+                            <p className={styles.userName}>{userData.login}</p>
+                        </div>
+                        <img 
+                            className={styles.arrowIcon} 
+                            src={copy}
+                            alt="copy"
+                            style={{ opacity: '1', cursor: 'pointer' }}
+                            onClick={copyText}
+                        />
+                    </div>
+                </div>
+                
+                <div>
+                    <div className={styles.btncont}>
+                        <button className={styles.active} onClick={sendMessage}>Write</button>
+                        <button onClick={sendEcho}>Send Echo</button>
+                    </div>
+                </div>
+                
+                <div>
+                    <div className={styles.btncont}>
+                        <button 
+                            className={nav === 0 ? styles.active : ""} 
+                            onClick={() => handleNavChange(0)}
+                        >
+                            Images ({images.length})
+                        </button>
+                        <button 
+                            className={nav === 1 ? styles.active : ""} 
+                            onClick={() => handleNavChange(1)}
+                        >
+                            Videos ({videos.length})
+                        </button>
+                        <button 
+                            className={nav === 2 ? styles.active : ""} 
+                            onClick={() => handleNavChange(2)}
+                        >
+                            Acts ({acts.length})
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Вкладка Images */}
+            {nav === 0 && (
+                <div className={styles.mediaGrid}>
+                    <p className={styles.title}>Images from chat</p>
+                    {images.length > 0 ? (
+                        <div className={styles.grid}>
+                            {images.map((image) => (
+                                <div 
+                                    key={image.id} 
+                                    className={styles.mediaItem}
+                                    onClick={() => window.open(image.fileUrl, '_blank')}
+                                >
+                                    <img 
+                                        src={image.fileUrl} 
+                                        alt="chat media" 
+                                        className={styles.mediaPreview}
+                                    />
+                                    <div className={styles.mediaDate}>
+                                        {formatDate(image.createdAt)}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <h3 className={styles.noResults}>No images found</h3>
+                    )}
+                </div>
+            )}
+
+            {/* Вкладка Videos */}
+            {nav === 1 && (
+                <div className={styles.mediaGrid}>
+                    <p className={styles.title}>Videos from chat</p>
+                    {videos.length > 0 ? (
+                        <div className={styles.grid}>
+                            {videos.map((video) => (
+                                <div 
+                                    key={video.id} 
+                                    className={styles.mediaItem}
+                                    onClick={() => window.open(video.fileUrl, '_blank')}
+                                >
+                                    <video 
+                                        src={video.fileUrl} 
+                                        className={styles.mediaPreview}
+                                        muted
+                                    />
+                                    <div className={styles.mediaDate}>
+                                        {formatDate(video.createdAt)}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <h3 className={styles.noResults}>No videos found</h3>
+                    )}
+                </div>
+            )}
+
+            {/* Вкладка Acts */}
+            {nav === 2 && (
+                <div className={styles.act}>
+                    {acts.length > 0 ? (
+                        <>
+                            <p className={styles.title}>Participated in the acts</p>
+                            {acts.map((act, index) => (
+                                <ActCard key={act.id || index} act={act} titleact={false} />
+                            ))}
+                        </>
+                    ) : (
+                        <h3 className={styles.noResults}>Nothing found</h3>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default CompanionProfile;

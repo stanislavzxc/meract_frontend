@@ -558,3 +558,54 @@ flex-direction: column;
   gap: 15px;
   transition: transform 0.2s ease;
 }
+.mediaGrid {
+  margin-top: 20px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.mediaItem {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.mediaItem:hover {
+  transform: scale(1.05);
+  border-color: #0093FF;
+}
+
+.mediaPreview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mediaDate {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 8px;
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+  color: white;
+  font-size: 12px;
+  text-align: right;
+}
+
+.noResults {
+  color: white;
+  text-align: center;
+  margin: 40px 0;
+  opacity: 0.5;
+}

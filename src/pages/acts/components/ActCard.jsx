@@ -51,11 +51,8 @@ useEffect(() => {
           setNavMethod(2);
         }
       }
-      if(id == 28){
-        console.log( actsdata,'data!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
-      }
     } catch (error) {
-      console.error("Ошибка при загрузке API:", error);
+      console.error("err", error);
     } finally {
       setLoading(false);
     }

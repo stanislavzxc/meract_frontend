@@ -5,7 +5,8 @@ import back from '../../images/arrow-left.png';
 import logo from '../../images/user.png';
 import trash from '../../images/trash.png';
 import styles from './Notifications.module.css';
-
+import { noticeApi } from '../../shared/api/notifications';
+import { useEffect } from 'react';
 const accept = () => {
     console.log('Accepted');
 }
@@ -20,6 +21,8 @@ const NotificationCard = ({ card, isExpanded, onToggle, onDelete, canSwipe }) =>
 
   const x = useMotionValue(0);
   const opacity = useTransform(x, [-60, -20], [1, 0]);
+
+ 
 
   useLayoutEffect(() => {
     if (canSwipe && textRef.current) {
@@ -123,6 +126,18 @@ const Notifications = () => {
   const [invitations, setInvitations] = useState([
     { id: 101, user: 'alex', desc: 'asdafsdfasdfasdfasdfa"', time: '14:30' },
   ]);
+
+   useEffect(() => {
+    const loadAllData = async () => {
+      try {
+        const data = await noticeApi.getNotifications();
+        console.log("Загруженные данные:", data);
+      } catch (error) {
+        console.error("err", error);
+      } 
+    };
+    loadAllData();
+  }, []); 
 
   const toggleExpand = (id) => {
     setExpandedCards(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);

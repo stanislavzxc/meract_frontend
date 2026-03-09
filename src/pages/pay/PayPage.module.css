@@ -348,6 +348,10 @@ input {
   font: inherit;
   cursor: pointer;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  max-height: 50px;
 }
 
 .btncont button.active {

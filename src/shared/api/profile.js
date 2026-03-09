@@ -1,6 +1,7 @@
 import api from "./api";
 import axios from 'axios';
 import { useAuthStore } from "../stores/authStore";
+import { data } from "react-router-dom";
 
 export const profileApi = {
   getProfile: async () => {
@@ -107,6 +108,60 @@ updateInfo: async (name, desc, avatarFile, coverFile, id) => {
   },
   getUserById: async (id) => {
     const response = await api.get(`/user/get-user/${id}`);
+    return response.data;
+  },
+   status2fa: async () => {
+    const response = await api.get(`/security/2fa/status`);
+    return response.data;
+  },
+   generate2fa: async () => {
+    const response = await api.post(`/security/2fa/generate`);
+    return response.data;
+  },
+   confirm2fa: async (code) => {
+    const response = await api.post(`/security/2fa/enable?token=${code}`);
+    return response.data;
+  },  
+    getwhoCanMessage: async () => {
+    const response = await api.get(`/security/who-can-message`);
+    return response.data;
+  },
+   setwhoCanMessage: async (data) => {
+  
+    const response = await api.post(`/security/who-can-message`, data);
+    return response.data;
+  },
+  //step1
+  emailSendCode: async () => {
+    const response = await api.post(`/security/change-email/send-code`);
+    return response.data;
+  },  
+  //step2
+  emailverify: async (code) => {
+    const response = await api.post(`/security/change-email/verify-code?code=${code}`);
+    return response.data;
+  }, 
+  //step3
+  setNewEmail: async (email) => {
+    const data = {newEmail: email}
+    const response = await api.post(`/security/change-email/set-new-email`, data);
+    return response.data;
+  },  
+  //step4
+  confirmEmail: async (code) => {
+    const response = await api.post(`/security/change-email/confirm?code=${code}`);
+    return response.data;
+  },
+  passwordSendCode: async () => {
+    const response = await api.post(`/security/change-password/send-code`);
+    return response.data;
+  }, 
+  passwordconfirm: async (code, newpassword, repassword) => {
+    const data = {
+      password: newpassword,
+      repassword: repassword
+    }
+    const response = await api.post(`/security/change-password/confirm?code=${code}`, data);
     return response.data;
   },
   

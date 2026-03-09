@@ -381,7 +381,7 @@ export default function CreateAct() {
           <div 
             className={styles.guildImgContainer} 
             onClick={() => photoInputRef.current?.click()}
-            style={{ minHeight: '200px', cursor: 'pointer' }}
+            style={{ maxHeight: '100px', cursor: 'pointer' }}
           >
             <div className={styles.emptyPlaceholder}>
               <p>Click to upload photo</p>

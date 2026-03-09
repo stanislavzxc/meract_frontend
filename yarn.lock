@@ -532,6 +532,13 @@ dunder-proto@^1.0.1:
     es-errors "^1.3.0"
     gopd "^1.2.0"
 
+emoji-picker-react@^4.18.0:
+  version "4.18.0"
+  resolved "https://registry.npmjs.org/emoji-picker-react/-/emoji-picker-react-4.18.0.tgz"
+  integrity sha512-vLTrLfApXAIciguGE57pXPWs9lPLBspbEpPMiUq03TIli2dHZBiB+aZ0R9/Wat0xmTfcd4AuEzQgSYxEZ8C88Q==
+  dependencies:
+    flairup "1.0.0"
+
 engine.io-client@~6.6.1:
   version "6.6.3"
   resolved "https://registry.npmjs.org/engine.io-client/-/engine.io-client-6.6.3.tgz"
@@ -756,6 +763,11 @@ find-up@^5.0.0:
   dependencies:
     locate-path "^6.0.0"
     path-exists "^4.0.0"
+
+flairup@1.0.0:
+  version "1.0.0"
+  resolved "https://registry.npmjs.org/flairup/-/flairup-1.0.0.tgz"
+  integrity sha512-IKlE+pNvL2R+kVL1kEhUYqRxVqeFnjiIvHWDMLFXNaqyUdFXQM2wte44EfMYJNHkW16X991t2Zg8apKkhv7OBA==
 
 flat-cache@^4.0.0:
   version "4.0.1"

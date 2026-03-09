@@ -58,6 +58,7 @@ import TechnicalSupport from "../../pages/TechnicalSupport/TechnicalSupport";
 import ActDetail from "../../pages/acts/ActsDetail";
 import TeamDetail from "../../pages/createAct/TeamDetail";
 import MyActsPage from "../../pages/acts/MyActs";
+import CompanionProfile from "../../pages/chats/CompanionProfile";
 const HomeRedirect = () => {
   const [searchParams] = useSearchParams();
   const { isAuthenticated, login } = useAuthStore();
@@ -314,7 +315,12 @@ export const router = createBrowserRouter([
     element: <MyActsPage />,
   },
 
-
+{
+    path: "/profile/:id/:userId",
+    element: (
+        <CompanionProfile />
+    ),
+  },
   {
     path: "*",
     element: <NotFoundPage />,

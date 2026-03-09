@@ -176,7 +176,8 @@ const PersonalData = () => {
                     <div className="name">
                         <h1>Profile</h1>
                     </div>
-                    <img src={changeIcon} alt="notifications" onClick={() => navigate('/notifications')} className={styles.pointer}/>
+                    {/* <img src={changeIcon} alt="notifications" onClick={() => navigate('/notifications')} className={styles.pointer}/> */}
+                    <div></div>
                 </div>
             </div>
 

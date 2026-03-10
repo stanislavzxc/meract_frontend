@@ -137,7 +137,7 @@ const handleheroClick = (clickedHero) => {
 
 
 const join = () => {
-  navigate(`/stream/${act.id}`, { state: { act } });
+  navigate(`/stream/${id}`, { state: { act } });
 
 }
   const bannerUrl = iconguild;
@@ -178,7 +178,7 @@ const join = () => {
 
 
 
-        <div className={`${styles.card} ${styles.firstcard}`} >
+        <div className={`${styles.card} ${styles.firstcard}`} style={{marginTop:'100px',}}>
 
           <div className={styles.infoblock} style={{width:'100%',}}>
                       <div className={styles.inner}>

@@ -663,3 +663,12 @@ flex-direction: column;
   opacity: 1 !important;
   filter: drop-shadow(0 0 5px #ff1e01) brightness(1.2);
 }
+.online{
+  background: #E74209;
+  width: fit-content;
+  display: flex;
+  gap: 5px;
+  padding: 7px;
+  border-radius: 10px;
+  color: wheat;
+}

@@ -64,6 +64,7 @@ export default function StreamPage() {
     <StreamViewer
       channelName={id || act.id?.toString() || "default_channel"}
       streamData={act}
+      id={id}
     />
   );
 }

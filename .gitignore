@@ -25,5 +25,3 @@ dist-ssr
 *.sln
 *.sw?
 
-src/images
-public/images

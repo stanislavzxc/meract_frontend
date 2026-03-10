@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-
 import AgoraRTC from "agora-rtc-sdk-ng";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -8,7 +7,6 @@ import {
   MapContainer,
   Marker,
   Polyline,
-  Popup,
   TileLayer,
 } from "react-leaflet";
 import { useNavigate } from "react-router-dom";
@@ -20,6 +18,11 @@ import { useAuthStore } from "../../../shared/stores/authStore";
 import useChat from "../hooks/useChat";
 import EmojiPicker from "./EmojiPicker";
 import styles from "./StreamViewer.module.css";
+
+import back from '../../../images/arrow-left.png';
+import tasks_image from '../../../images/tasks.png';
+import messages from '../../../images/messages.png';
+import geo from '../../../images/geo.png';
 
 // Function to extract data from JWT token
 const parseJWT = (token) => {
@@ -41,11 +44,11 @@ const parseJWT = (token) => {
   }
 };
 
-const StreamViewer = ({ channelName, streamData, onClose }) => {
+const StreamViewer = ({ channelName, streamData, id, onClose }) => {
   const navigate = useNavigate();
   const [isConnected, setIsConnected] = useState(false);
-  const [, setError] = useState(null);
-  const [, setToken] = useState(null);
+  const [error, setError] = useState(null);
+  const [token, setToken] = useState(null);
   const [remoteUsers, setRemoteUsers] = useState([]);
   const [streamDuration, setStreamDuration] = useState(0);
   const [chatMessage, setChatMessage] = useState("");
@@ -58,6 +61,14 @@ const StreamViewer = ({ channelName, streamData, onClose }) => {
   const [routeCoordinates, setRouteCoordinates] = useState(null);
   const [startLocation, setStartLocation] = useState(null);
   const [destinationLocation, setDestinationLocation] = useState(null);
+
+  // Состояния для записей
+  const [recordings, setRecordings] = useState([]);
+  const [loadingRecordings, setLoadingRecordings] = useState(false);
+  const [showRecordingPlayer, setShowRecordingPlayer] = useState(false);
+  const [recordingUrl, setRecordingUrl] = useState("");
+  const [selectedRecording, setSelectedRecording] = useState(null);
+  const [recordingsExpanded, setRecordingsExpanded] = useState(false);
 
   console.log("StreamViewer - Initial streamData:", streamData);
 
@@ -112,6 +123,28 @@ const StreamViewer = ({ channelName, streamData, onClose }) => {
       fetchAssigned();
     }
   }, [spotAgentCount, fetchCandidates, fetchAssigned]);
+
+  // Загрузка записей
+  useEffect(() => {
+    const fetchRecordings = async () => {
+      if (!actId) return;
+      
+      setLoadingRecordings(true);
+      try {
+        const response = await api.get(`/agora-recording/recordings/act/${actId}`);
+        setRecordings(response.data || []);
+      } catch (err) {
+        console.error('Error fetching recordings:', err);
+        toast.error('Failed to load recordings');
+      } finally {
+        setLoadingRecordings(false);
+      }
+    };
+
+    if (actId) {
+      fetchRecordings();
+    }
+  }, [actId]);
 
   // Handle apply as spot agent
   const handleApplyAsSpotAgent = async () => {
@@ -172,54 +205,24 @@ const StreamViewer = ({ channelName, streamData, onClose }) => {
   }, [channelName, streamData]);
 
   // Create UNIQUE UID for viewer
-  // (streamId * 1000000) + (baseUserId * 100) + randomComponent
-  const userId = useMemo(() => {
-    const randomComponent = Math.floor(Math.random() * 100); // 0-99
-    const uid =
-      parseInt(streamId) * 1000000 + baseUserId * 100 + randomComponent;
+  const userIdNum = useMemo(() => {
+    const randomComponent = Math.floor(Math.random() * 100);
+    const uid = parseInt(streamId) * 1000000 + baseUserId * 100 + randomComponent;
 
-    // Save UID immediately after generation
     window.__STREAM_UIDS__ = window.__STREAM_UIDS__ || {};
     window.__STREAM_UIDS__[`${uid}_viewer`] = Date.now();
 
     return uid;
   }, [streamId, baseUserId]);
 
-  console.log(
-    "%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-    "color: #00BFFF; font-weight: bold; font-size: 14px;",
-  );
-  console.log(
-    "%c👁️ STREAM VIEWER - UNIQUE UID GENERATED (useMemo)",
-    "color: #00BFFF; font-weight: bold; font-size: 18px; background: #000; padding: 10px;",
-  );
-  console.log(
-    "%cStreamID: %c" + streamId + "%c | BaseUserID: %c" + baseUserId,
-    "color: #00BFFF; font-weight: bold;",
-    "color: #00FF00; font-weight: bold; font-size: 16px;",
-    "color: #00BFFF; font-weight: bold;",
-    "color: #00FF00; font-weight: bold; font-size: 16px;",
-  );
-  console.log(
-    "%c>>> UNIQUE UID: %c" + userId + " %c(with random component)",
-    "color: #00BFFF; font-weight: bold; font-size: 16px;",
-    "color: #FF00FF; font-weight: bold; font-size: 24px; text-shadow: 0 0 10px #FF00FF;",
-    "color: #00FFFF; font-weight: bold; font-size: 14px;",
-  );
-  console.log(
-    "%c━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-    "color: #00BFFF; font-weight: bold; font-size: 14px;",
-  );
-
   // Use passed channelName or create from streamData
   const actualChannelName = channelName?.startsWith("act_")
     ? channelName
     : `act_${channelName || streamData?.id || "default"}`;
 
+  // Подключение к стриму
   useEffect(() => {
-    // Get token for viewing
     const getViewerToken = async () => {
-      // Prevent double connection
       if (isConnectingRef.current) {
         console.log("Already connecting, skipping...");
         return;
@@ -232,19 +235,16 @@ const StreamViewer = ({ channelName, streamData, onClose }) => {
           "Getting viewer token for channel:",
           actualChannelName,
           "userId:",
-          userId,
+          userIdNum,
         );
 
-        // Get token from backend for subscriber (viewer)
-        // Use userId from auth store
         const response = await api.get(
-          `/act/token/${actualChannelName}/SUBSCRIBER/uid?uid=${userId}&expiry=3600`,
+          `/act/token/${actualChannelName}/SUBSCRIBER/uid?uid=${userIdNum}&expiry=3600`,
         );
         setToken(response.data.token);
 
         console.log("Viewer token received:", response.data.token);
 
-        // Automatically connect after receiving token
         await connectToStream(response.data.token);
       } catch (err) {
         console.error("Error getting viewer token:", err);
@@ -256,20 +256,34 @@ const StreamViewer = ({ channelName, streamData, onClose }) => {
 
     getViewerToken();
 
-    // Cleanup on unmounting
     return () => {
       isConnectingRef.current = false;
       if (isConnected && clientRef.current) {
         disconnectFromStream();
       }
     };
-  }, [streamData?.id, actualChannelName, userId]);
+  }, [streamData?.id, actualChannelName, userIdNum]);
+
+  // В начале компонента, после получения actualStreamData
+  useEffect(() => {
+    if (actualStreamData) {
+      console.log('✅ Stream is ONLINE!');
+      console.log('Channel name:', actualChannelName);
+      console.log('Recording status:', actualStreamData.recordingStatus);
+      console.log('Started at:', actualStreamData.startedAt);
+      console.log('User ID for connection:', userIdNum);
+      
+      // Проверяем, есть ли координаты
+      if (!actualStreamData.startLatitude || !actualStreamData.startLongitude) {
+        console.warn('⚠️ Start location is missing! Map may not work correctly.');
+      }
+    }
+  }, [actualStreamData, actualChannelName, userIdNum]);
 
   // Timer for stream duration
   useEffect(() => {
     if (!isConnected) return;
 
-    // Set stream start time
     if (!streamStartTimeRef.current) {
       streamStartTimeRef.current = Date.now();
     }
@@ -351,7 +365,6 @@ const StreamViewer = ({ channelName, streamData, onClose }) => {
         console.log("StreamViewer - Start location set:", start);
       }
 
-      // Destination is the LAST point from routePoints array
       if (
         actualStreamData?.routePoints &&
         Array.isArray(actualStreamData.routePoints) &&
@@ -371,13 +384,11 @@ const StreamViewer = ({ channelName, streamData, onClose }) => {
           destination,
         );
 
-        // Build route through all points: start → routePoints → destination
         if (
           actualStreamData?.startLatitude &&
           actualStreamData?.startLongitude
         ) {
           try {
-            // Build waypoints string for OSRM: start;point1;point2;...;lastPoint
             const waypoints = [];
             waypoints.push(
               `${actualStreamData.startLongitude},${actualStreamData.startLatitude}`,
@@ -413,14 +424,13 @@ const StreamViewer = ({ channelName, streamData, onClose }) => {
         actualStreamData?.destinationLatitude &&
         actualStreamData?.destinationLongitude
       ) {
-        // Fallback to original destination if no routePoints
         const destination = {
           latitude: actualStreamData.destinationLatitude,
           longitude: actualStreamData.destinationLongitude,
         };
         setDestinationLocation(destination);
         console.log("StreamViewer - Destination location set:", destination);
-        // Build route via OSRM if explicit routePoints are not provided
+        
         if (
           actualStreamData?.startLatitude &&
           actualStreamData?.startLongitude
@@ -473,28 +483,24 @@ const StreamViewer = ({ channelName, streamData, onClose }) => {
         streamToken,
       );
 
-      // Create Agora client for viewer
       const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
       clientRef.current = client;
 
       console.log("Agora client created, attempting to join...");
 
-      // Connect to channel as viewer
       await client.join(
         import.meta.env.VITE_AGORA_APP_ID,
         actualChannelName,
         streamToken,
-        userId, // user uid from auth store
+        userIdNum,
       );
 
       console.log("Successfully joined channel as viewer");
       setIsConnected(true);
 
-      // Listen to user events
       client.on("user-published", async (user, mediaType) => {
         console.log("User published:", user.uid, mediaType);
 
-        // Subscribe to user
         await client.subscribe(user, mediaType);
 
         if (mediaType === "video" && remoteVideoRef.current) {
@@ -527,24 +533,16 @@ const StreamViewer = ({ channelName, streamData, onClose }) => {
     try {
       console.log("Disconnecting from stream:", streamData?.id);
 
-      // Leave channel
       if (clientRef.current) {
         await clientRef.current.leave();
       }
 
-      // Clear UID from conflict detection
-      const uidKey = `${userId}_viewer`;
+      const uidKey = `${userIdNum}_viewer`;
       if (window.__STREAM_UIDS__ && window.__STREAM_UIDS__[uidKey]) {
         delete window.__STREAM_UIDS__[uidKey];
-        console.log(
-          "UID cleared from viewer: " + userId,
-          "color: #FFA500; font-weight: bold;",
-        );
       }
 
-      // Clear references
       clientRef.current = null;
-
       setIsConnected(false);
       setRemoteUsers([]);
 
@@ -556,15 +554,12 @@ const StreamViewer = ({ channelName, streamData, onClose }) => {
   };
 
   const handleClose = async () => {
-    // Disconnect from stream
     await disconnectFromStream();
 
-    // Call callback if provided
     if (onClose) {
       onClose();
     }
 
-    // Navigate to acts page
     navigate("/acts");
   };
 
@@ -596,329 +591,373 @@ const StreamViewer = ({ channelName, streamData, onClose }) => {
     setShowEmojiPicker(false);
   };
 
+  // Обработчики для записей
+  const handlePlayRecording = async (recording) => {
+    try {
+      const response = await api.get(`/agora-recording/recordings/stream/${recording.key}`);
+      setRecordingUrl(response.data.url);
+      setSelectedRecording(recording);
+      setShowRecordingPlayer(true);
+    } catch (err) {
+      console.error('Error getting stream URL:', err);
+      toast.error('Failed to load recording');
+    }
+  };
+
+  const handleDownloadRecording = async (recording) => {
+    try {
+      const response = await api.get(`/agora-recording/recordings/download-url/${recording.key}`);
+      window.open(response.data.url, '_blank');
+    } catch (err) {
+      console.error('Error getting download URL:', err);
+      toast.error('Failed to download recording');
+    }
+  };
+
+  const handleDeleteRecording = async (recording) => {
+    if (!window.confirm('Are you sure you want to delete this recording?')) return;
+    
+    try {
+      await api.delete(`/agora-recording/recordings/${recording.key}`);
+      setRecordings(prev => prev.filter(r => r.key !== recording.key));
+      toast.success('Recording deleted');
+    } catch (err) {
+      console.error('Error deleting recording:', err);
+      toast.error('Failed to delete recording');
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleString();
+  };
+
+  const formatSize = (bytes) => {
+    if (!bytes) return 'Unknown size';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  };
+
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <div className={styles.topRow}>
-          <button onClick={handleClose} className={styles.backButton}>
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 16 16"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M3.825 9L9.425 14.6L8 16L0 8L8 0L9.425 1.4L3.825 7H16V9H3.825Z"
-                fill="white"
-              />
-            </svg>
-          </button>
+  <div className={styles.container}>
+    {actualStreamData?.status === 'ONLINE' ? (
+      <>
+        <div className={styles.header}>
+          <div className={styles.header_cont}>
+            <img src={back} alt="" onClick={() => navigate(`/acts/${id}`)}/>
+            {actualStreamData?.status === 'ONLINE' && 
+              <div className={styles.online}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org">
+                  <circle cx="10" cy="10" r="5" fill="white" />
+                </svg>
+                <p className={styles.live}>Live</p>
+              </div>
+            }
+          </div>
 
-          <h1 className={styles.title}>
-            {streamData?.title || streamData?.name || "ACT TITLE"}
-          </h1>
+          {(streamData?.navigator ||
+            streamData?.hero ||
+            streamData?.initiator) && (
+            <div className={styles.rolesNavigation}>
+              {streamData?.navigator && (
+                <span>Navigator: {streamData.navigator}</span>
+              )}
+              {streamData?.navigator && streamData?.hero && (
+                <span className={styles.roleSeparator}>;</span>
+              )}
+              {streamData?.hero && <span>Hero: {streamData.hero}</span>}
+              {streamData?.hero && streamData?.initiator && (
+                <span className={styles.roleSeparator}>;</span>
+              )}
+              {streamData?.initiator && (
+                <span>Initiator: {streamData.initiator}</span>
+              )}
+            </div>
+          )}
+        </div>
 
-          <div className={styles.timer}>
-            <svg
-              width="17"
-              height="17"
-              viewBox="0 0 17 17"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
+        <div className={styles.videoContainer}>
+          <div ref={remoteVideoRef} className={styles.videoElement} />
+        </div>
+
+        <div className={styles.chatContainer}>
+          <div className={styles.chatActions}>
+            <button
+              className={styles.actionButton}
+              onClick={() => setShowMap(true)}
             >
-              <path
-                d="M8.50002 1.41699C12.4121 1.41699 15.5834 4.5882 15.5834 8.50033C15.5834 12.4124 12.4121 15.5837 8.50002 15.5837C4.5879 15.5837 1.41669 12.4124 1.41669 8.50033C1.41669 4.5882 4.5879 1.41699 8.50002 1.41699ZM8.50002 4.25033C8.31216 4.25033 8.13199 4.32495 7.99915 4.45779C7.86631 4.59063 7.79169 4.7708 7.79169 4.95866V8.50033C7.79173 8.68817 7.86638 8.86831 7.99923 9.00112L10.1242 11.1261C10.2578 11.2551 10.4367 11.3265 10.6225 11.3249C10.8082 11.3233 10.9859 11.2488 11.1172 11.1175C11.2485 10.9862 11.323 10.8085 11.3246 10.6228C11.3262 10.4371 11.2548 10.2581 11.1258 10.1245L9.20835 8.20708V4.95866C9.20835 4.7708 9.13373 4.59063 9.00089 4.45779C8.86805 4.32495 8.68788 4.25033 8.50002 4.25033Z"
-                fill="white"
-              />
-            </svg>
-            {Math.floor(streamDuration / 60)}:
-            {String(streamDuration % 60).padStart(2, "0")}
+              <img src={geo} alt="Location" />
+            </button>
+            <button
+              className={styles.actionButton}
+              onClick={() => setIsTasksModalOpen(true)}
+            >
+              <img src={tasks_image} alt="File" />
+            </button>
+            <button className={styles.actionButton}>
+              <img src={messages} alt="Chat" />
+            </button>
+            {!isInitiator &&
+              spotAgentCount > 0 &&
+              assignedAgents.length < spotAgentCount && (
+                <button
+                  className={`${styles.actionButton} ${hasApplied ? styles.spotAgentApplied : styles.spotAgentButton}`}
+                  onClick={handleApplyAsSpotAgent}
+                  disabled={spotAgentLoading || hasApplied}
+                  title={
+                    hasApplied ? "Application submitted" : "Become a Spot Agent"
+                  }
+                >
+                  {hasApplied ? (
+                    <span className={styles.spotAgentIcon}>✓</span>
+                  ) : (
+                    <span className={styles.spotAgentIcon}>🙋</span>
+                  )}
+                </button>
+              )}
           </div>
         </div>
 
-        <div className={styles.location}>
-          <svg
-            width="17"
-            height="17"
-            viewBox="0 0 17 17"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              fillRule="evenodd"
-              clipRule="evenodd"
-              d="M7.97723 15.6786C7.97723 15.6786 2.83331 11.3464 2.83331 7.08366C2.83331 5.58077 3.43034 4.13943 4.49304 3.07672C5.55575 2.01401 6.99709 1.41699 8.49998 1.41699C10.0029 1.41699 11.4442 2.01401 12.5069 3.07672C13.5696 4.13943 14.1666 5.58077 14.1666 7.08366C14.1666 11.3464 9.02273 15.6786 9.02273 15.6786C8.73656 15.9421 8.26552 15.9392 7.97723 15.6786ZM8.49998 9.56283C8.82555 9.56283 9.14793 9.4987 9.44872 9.37411C9.7495 9.24952 10.0228 9.06691 10.253 8.83669C10.4832 8.60648 10.6658 8.33318 10.7904 8.03239C10.915 7.73161 10.9791 7.40923 10.9791 7.08366C10.9791 6.75809 10.915 6.43571 10.7904 6.13492C10.6658 5.83414 10.4832 5.56084 10.253 5.33062C10.0228 5.10041 9.7495 4.9178 9.44872 4.79321C9.14793 4.66862 8.82555 4.60449 8.49998 4.60449C7.84246 4.60449 7.21188 4.86569 6.74694 5.33062C6.28201 5.79556 6.02081 6.42614 6.02081 7.08366C6.02081 7.74117 6.28201 8.37176 6.74694 8.83669C7.21188 9.30163 7.84246 9.56283 8.49998 9.56283Z"
-              fill="white"
-            />
-          </svg>
-          <span className={styles.locationText}>
-            {streamData?.location || "Santa Cruz, Argentina"}
-          </span>
-        </div>
+        {/* Блок записей */}
+        {!loadingRecordings && recordings.length > 0 && (
+          <div className={styles.recordingsContainer}>
+            <div 
+              className={styles.recordingsHeader}
+              onClick={() => setRecordingsExpanded(!recordingsExpanded)}
+            >
+              <span>📹 Recordings ({recordings.length})</span>
+              <span className={styles.expandIcon}>{recordingsExpanded ? '▼' : '▶'}</span>
+            </div>
 
-        {(streamData?.navigator ||
-          streamData?.hero ||
-          streamData?.initiator) && (
-          <div className={styles.rolesNavigation}>
-            {streamData?.navigator && (
-              <span>Navigator: {streamData.navigator}</span>
-            )}
-            {streamData?.navigator && streamData?.hero && (
-              <span className={styles.roleSeparator}>;</span>
-            )}
-            {streamData?.hero && <span>Hero: {streamData.hero}</span>}
-            {streamData?.hero && streamData?.initiator && (
-              <span className={styles.roleSeparator}>;</span>
-            )}
-            {streamData?.initiator && (
-              <span>Initiator: {streamData.initiator}</span>
+            {recordingsExpanded && (
+              <div className={styles.recordingsList}>
+                {recordings.map((recording) => (
+                  <div key={recording.key} className={styles.recordingItem}>
+                    <div className={styles.recordingInfo}>
+                      <span className={styles.recordingDate}>
+                        {formatDate(recording.createdAt)}
+                      </span>
+                      <span className={styles.recordingSize}>
+                        {recording.size ? formatSize(recording.size) : 'Unknown size'}
+                      </span>
+                      <span className={styles.recordingDuration}>
+                        {recording.duration || 'Unknown duration'}
+                      </span>
+                    </div>
+                    
+                    <div className={styles.recordingActions}>
+                      <button
+                        className={styles.recordingButton}
+                        onClick={() => handlePlayRecording(recording)}
+                        title="Play"
+                      >
+                        ▶️
+                      </button>
+                      <button
+                        className={styles.recordingButton}
+                        onClick={() => handleDownloadRecording(recording)}
+                        title="Download"
+                      >
+                        ⬇️
+                      </button>
+                      <button
+                        className={`${styles.recordingButton} ${styles.deleteButton}`}
+                        onClick={() => handleDeleteRecording(recording)}
+                        title="Delete"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
-      </div>
 
-      <div className={styles.videoContainer}>
-        <div ref={remoteVideoRef} className={styles.videoElement} />
-      </div>
-
-      <div className={styles.chatContainer}>
-        <div className={styles.chatPanel}>
-          <div className={styles.chatMessages}>
-            {chatMessages && chatMessages.length > 0 ? (
-              chatMessages.map((message) => (
-                <div key={message.id} className={styles.chatMessage}>
-                  <span className={styles.username}>
-                    {message.username || message.user?.username || "Anonymous"}
-                  </span>
-                  <span className={styles.messageText}>
-                    {message.message || message.text}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <div className={styles.noMessages}>No messages yet...</div>
-            )}
-          </div>
-
-          <div className={styles.chatInput}>
-            <input
-              type="text"
-              placeholder="Write your message..."
-              value={chatMessage}
-              onChange={(e) => setChatMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className={styles.messageInput}
-              disabled={sending}
-            />
+        {showMap && (
+          <div className={styles.mapOverlay}>
+            {console.log("StreamViewer - Rendering Map with state:", {
+              startLocation,
+              destinationLocation,
+              routeCoordinatesLength: routeCoordinates?.length,
+              routeCoordinates: routeCoordinates,
+            })}
             <button
-              className={styles.inputButton}
-              disabled={sending}
-              onClick={handleEmojiClick}
+              className={styles.closeMapButton}
+              onClick={() => setShowMap(false)}
             >
-              <img src="/icons/chat/smile.png" alt="Emoji" />
-            </button>
-            <button
-              className={styles.inputButton}
-              onClick={handleSendMessage}
-              disabled={sending || !chatMessage.trim()}
-            >
-              <img src="/icons/chat/send.png" alt="Send" />
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M15 18L9 12L15 6"
+                  stroke="white"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              Back
             </button>
 
-            {showEmojiPicker && (
-              <EmojiPicker
-                onEmojiSelect={handleEmojiSelect}
-                onClose={handleCloseEmojiPicker}
+            <MapContainer
+              center={
+                startLocation
+                  ? [startLocation.latitude, startLocation.longitude]
+                  : userPosition
+              }
+              zoom={15}
+              style={{
+                width: "100%",
+                height: "100%",
+                filter: "grayscale(100%) invert(1)",
+              }}
+              zoomControl={true}
+              attributionControl={false}
+            >
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               />
-            )}
-          </div>
-        </div>
-
-        <div className={styles.chatActions}>
-          <button
-            className={styles.actionButton}
-            onClick={() => setShowMap(true)}
-          >
-            <img src="/icons/chat/geo.png" alt="Location" />
-          </button>
-          <button
-            className={styles.actionButton}
-            onClick={() => setIsTasksModalOpen(true)}
-          >
-            <img src="/icons/chat/file.png" alt="File" />
-          </button>
-          <button className={styles.actionButton}>
-            <img src="/icons/chat/chat.png" alt="Chat" />
-          </button>
-          {/* Spot Agent Button - только если требуются spot agents */}
-          {!isInitiator &&
-            spotAgentCount > 0 &&
-            assignedAgents.length < spotAgentCount && (
-              <button
-                className={`${styles.actionButton} ${hasApplied ? styles.spotAgentApplied : styles.spotAgentButton}`}
-                onClick={handleApplyAsSpotAgent}
-                disabled={spotAgentLoading || hasApplied}
-                title={
-                  hasApplied ? "Application submitted" : "Become a Spot Agent"
-                }
-              >
-                {hasApplied ? (
-                  <span className={styles.spotAgentIcon}>✓</span>
-                ) : (
-                  <span className={styles.spotAgentIcon}>🙋</span>
-                )}
-              </button>
-            )}
-        </div>
-      </div>
-
-      {showMap && (
-        <div className={styles.mapOverlay}>
-          {console.log("StreamViewer - Rendering Map with state:", {
-            startLocation,
-            destinationLocation,
-            routeCoordinatesLength: routeCoordinates?.length,
-            routeCoordinates: routeCoordinates,
-          })}
-          <button
-            className={styles.closeMapButton}
-            onClick={() => setShowMap(false)}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M15 18L9 12L15 6"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            Back
-          </button>
-
-          <MapContainer
-            center={
-              startLocation
-                ? [startLocation.latitude, startLocation.longitude]
-                : userPosition
-            }
-            zoom={15}
-            style={{
-              width: "100%",
-              height: "100%",
-              filter: "grayscale(100%) invert(1)",
-            }}
-            zoomControl={true}
-            attributionControl={false}
-          >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            />
-            {startLocation && (
-              <Circle
-                center={[startLocation.latitude, startLocation.longitude]}
-                radius={50}
-                pathOptions={{
-                  color: "black",
-                  fillColor: "black",
-                  fillOpacity: 0.8,
-                  weight: 2,
-                }}
-              />
-            )}
-            {routeCoordinates && routeCoordinates.length > 0 && (
-              <>
-                <Polyline
-                  positions={routeCoordinates}
+              {startLocation && (
+                <Circle
+                  center={[startLocation.latitude, startLocation.longitude]}
+                  radius={50}
                   pathOptions={{
                     color: "black",
-                    weight: 4,
-                    opacity: 0.8,
+                    fillColor: "black",
+                    fillOpacity: 0.8,
+                    weight: 2,
                   }}
                 />
-                {console.log(
-                  "StreamViewer - Rendering Polyline with",
-                  routeCoordinates.length,
-                  "points",
-                )}
-              </>
-            )}
-            {actualStreamData?.routePoints &&
-              actualStreamData.routePoints.length > 0 &&
-              actualStreamData.routePoints
-                .slice()
-                .sort((a, b) => (a.order || 0) - (b.order || 0))
-                .map((pt) => {
-                  const isStartPoint =
-                    startLocation &&
-                    Math.abs(pt.latitude - startLocation.latitude) < 0.0001 &&
-                    Math.abs(pt.longitude - startLocation.longitude) < 0.0001;
+              )}
+              {routeCoordinates && routeCoordinates.length > 0 && (
+                <>
+                  <Polyline
+                    positions={routeCoordinates}
+                    pathOptions={{
+                      color: "black",
+                      weight: 4,
+                      opacity: 0.8,
+                    }}
+                  />
+                  {console.log(
+                    "StreamViewer - Rendering Polyline with",
+                    routeCoordinates.length,
+                    "points",
+                  )}
+                </>
+              )}
+              {actualStreamData?.routePoints &&
+                actualStreamData.routePoints.length > 0 &&
+                actualStreamData.routePoints
+                  .slice()
+                  .sort((a, b) => (a.order || 0) - (b.order || 0))
+                  .map((pt) => {
+                    const isStartPoint =
+                      startLocation &&
+                      Math.abs(pt.latitude - startLocation.latitude) < 0.0001 &&
+                      Math.abs(pt.longitude - startLocation.longitude) < 0.0001;
 
-                  if (isStartPoint) return null;
+                    if (isStartPoint) return null;
 
-                  const icon = L.divIcon({
-                    className: "custom-marker-icon",
-                    html: `<div style="
-                      background-color: black;
-                      color: white;
-                      border-radius: 50%;
-                      width: 32px;
-                      height: 32px;
-                      display: flex;
-                      align-items: center;
-                      justify-content: center;
-                      font-weight: bold;
-                      font-size: 14px;
-                      border: 2px solid white;
-                    ">${(pt.order != null ? pt.order : 0) + 1}</div>`,
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 16],
-                  });
+                    const icon = L.divIcon({
+                      className: "custom-marker-icon",
+                      html: `<div style="
+                        background-color: black;
+                        color: white;
+                        border-radius: 50%;
+                        width: 32px;
+                        height: 32px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: bold;
+                        font-size: 14px;
+                        border: 2px solid white;
+                      ">${(pt.order != null ? pt.order : 0) + 1}</div>`,
+                      iconSize: [32, 32],
+                      iconAnchor: [16, 16],
+                    });
 
-                  return (
-                    <Marker
-                      key={`point-${pt.id}`}
-                      position={[pt.latitude, pt.longitude]}
-                      icon={icon}
-                    />
-                  );
-                })}
-          </MapContainer>
-        </div>
-      )}
-
-      {isTasksModalOpen && (
-        <div
-          className={styles.modalOverlay}
-          onClick={() => setIsTasksModalOpen(false)}
-        >
-          <div
-            className={styles.modalContent}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className={styles.modalHeader}>
-              <h2>Waypoints / Tasks</h2>
-              <button
-                className={styles.closeButton}
-                onClick={() => setIsTasksModalOpen(false)}
-              >
-                ×
-              </button>
+                    return (
+                      <Marker
+                        key={`point-${pt.id}`}
+                        position={[pt.latitude, pt.longitude]}
+                        icon={icon}
+                      />
+                    );
+                  })}
+            </MapContainer>
+            <div className={styles.chatContainer}>
+              <div className={styles.chatActions}>
+                <button
+                  className={styles.actionButton}
+                  style={{backgroundColor:'#0093FF'}}
+                  onClick={() => setShowMap(false)}
+                >
+                  <img src={geo} alt="Location" />
+                </button>
+                <button
+                  className={styles.actionButton}
+                  onClick={() => {
+                    setShowMap(false);
+                    setIsTasksModalOpen(true);
+                  }}
+                >
+                  <img src={tasks_image} alt="File" />
+                </button>
+                <button className={styles.actionButton}>
+                  <img src={messages} alt="Chat" />
+                </button>
+                {!isInitiator &&
+                  spotAgentCount > 0 &&
+                  assignedAgents.length < spotAgentCount && (
+                    <button
+                      className={`${styles.actionButton} ${hasApplied ? styles.spotAgentApplied : styles.spotAgentButton}`}
+                      onClick={handleApplyAsSpotAgent}
+                      disabled={spotAgentLoading || hasApplied}
+                      title={
+                        hasApplied ? "Application submitted" : "Become a Spot Agent"
+                      }
+                    >
+                      {hasApplied ? (
+                        <span className={styles.spotAgentIcon}>✓</span>
+                      ) : (
+                        <span className={styles.spotAgentIcon}>🙋</span>
+                      )}
+                    </button>
+                  )}
+              </div>
             </div>
+          </div>
+        )}
 
-            <div className={styles.tasksContainer}>
+        {isTasksModalOpen && (
+          <div
+            className={styles.modalOverlay}
+            style={{padding:'15px'}}
+            onClick={() => setIsTasksModalOpen(false)}
+          >
+            <div className={styles.header} style={{backdropFilter: 'none', background:'none'}}>
+              <div className={styles.header_cont}>
+                <div className={styles.backButton} onClick={() => setIsTasksModalOpen(false)}>
+                  <img src={back} alt="Back" className={styles.backIcon} />
+                </div>
+                <h2 className="name" style={{color:'white'}}>Act's tasks</h2>
+                <div></div>
+              </div>
+            </div>
+            <div className={styles.none}>
               {loadingTasks ? (
                 <div className={styles.loadingTasks}>Loading tasks...</div>
               ) : tasks.length === 0 ? (
                 <div className={styles.noTasks}>No tasks available</div>
               ) : (
-                <div className={styles.tasksList}>
+                <div className={styles.cardcont} style={{marginTop:'100px'}}>
                   {tasks.map((task) => (
                     <div
                       key={task.id}
-                      className={`${styles.taskItem} ${task.isCompleted ? styles.taskCompleted : ""}`}
+                      className={`${styles.taskItem} ${task.isCompleted ? styles.taskCompleted : ""} ${styles.card}`}
                     >
                       <div className={styles.taskCheckbox}>
                         <input
@@ -944,11 +983,83 @@ const StreamViewer = ({ channelName, streamData, onClose }) => {
                 </div>
               )}
             </div>
+            <div className={styles.chatContainer}>
+              <div className={styles.chatActions}>
+                <button
+                  className={styles.actionButton}
+                  onClick={() => setShowMap(true)}
+                >
+                  <img src={geo} alt="Location" />
+                </button>
+                <button
+                  className={styles.actionButton}
+                  style={{backgroundColor:'#0093FF'}}
+                  onClick={() => setIsTasksModalOpen(true)}
+                >
+                  <img src={tasks_image} alt="File" />
+                </button>
+                <button className={styles.actionButton}>
+                  <img src={messages} alt="Chat" />
+                </button>
+                {!isInitiator &&
+                  spotAgentCount > 0 &&
+                  assignedAgents.length < spotAgentCount && (
+                    <button
+                      className={`${styles.actionButton} ${hasApplied ? styles.spotAgentApplied : styles.spotAgentButton}`}
+                      onClick={handleApplyAsSpotAgent}
+                      disabled={spotAgentLoading || hasApplied}
+                      title={
+                        hasApplied ? "Application submitted" : "Become a Spot Agent"
+                      }
+                    >
+                      {hasApplied ? (
+                        <span className={styles.spotAgentIcon}>✓</span>
+                      ) : (
+                        <span className={styles.spotAgentIcon}>🙋</span>
+                      )}
+                    </button>
+                  )}
+              </div>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-};
+        )}
 
+        {showRecordingPlayer && selectedRecording && (
+          <div className={styles.modalOverlay}>
+            <div className={styles.recordingPlayer}>
+              <div className={styles.recordingPlayerHeader}>
+                <h3>Recording Playback</h3>
+                <button 
+                  onClick={() => setShowRecordingPlayer(false)} 
+                  className={styles.closePlayerButton}
+                >
+                  ×
+                </button>
+              </div>
+              
+              <video
+                src={recordingUrl}
+                controls
+                autoPlay
+                className={styles.recordingVideo}
+              />
+            </div>
+          </div>
+        )}
+      </>
+    ) : (
+      <>
+       <div className={styles.header}>
+          <div className={styles.header_cont}>
+            <img src={back} alt="" onClick={() => navigate(`/acts/${id}`)}/>
+          </div>
+          
+        </div>
+        <h2 style={{color:'white', margin:'auto',}}>Translation will start soon</h2>
+      </>
+
+    )}
+  </div>
+);
+};
 export default StreamViewer;

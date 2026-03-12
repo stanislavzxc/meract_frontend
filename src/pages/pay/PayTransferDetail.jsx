@@ -5,7 +5,9 @@ import userimg from '../../images/user.png';
 import point from '../../images/Echo.png';
 
 import { useNavigate, useParams } from 'react-router-dom';
-
+import { profileApi } from '../../shared/api/profile';
+import { useEffect } from 'react';
+import { payApi } from '../../shared/api/pay';
 const PayTransferDetail = () => {
     const navigate = useNavigate();
     const { id } = useParams();
@@ -14,9 +16,20 @@ const PayTransferDetail = () => {
     const [amount, setAmount] = useState('');
 
     // Данные получателя
-    const card = { id: 1, user: 'pavel', img: userimg, status: 'online' };
+    const [card, setCard] = useState({});
+    useEffect(() => {
+            const fetchTransaction = async () => {
+                try {
+                    const data = await profileApi.getUserById(id);
+                    setCard(data);
+                    console.log(data)
+                } catch (error) {
+                    console.error("err:", error);
+                } 
+            };
+            fetchTransaction();
+        }, [id]); 
 
-    // Обработчик ввода: разрешает только цифры
     const handleInputChange = (e) => {
         const value = e.target.value;
         // Регулярное выражение /^\d*$/ пропускает только пустую строку или цифры
@@ -25,13 +38,18 @@ const PayTransferDetail = () => {
         }
     };
 
-    const handleSend = () => {
+    const handleSend = async() => {
         if (!amount || parseInt(amount) === 0) {
-            console.log('Введите сумму');
+            console.log('input summ');
             return;
         }
+        const data = {
+            sum: parseInt(amount),
+            user: card.login,
+        }
+        await payApi.sendEcho(data)
         console.log(`Sending ${amount} Echo to ${card.user} (ID: ${id})`);
-        // Здесь логика отправки
+        navigate('/wallet')
     };
 
     return (
@@ -53,16 +71,16 @@ const PayTransferDetail = () => {
                 <h3 style={{ color: '#fff', marginBottom: '10px' }}>Recipient</h3>
                 <div className={styles.card}>
                     <div className={styles.rankBadge}>
-                        <img src={card.img} alt="user" className={styles.rankImg} />
+                        <img src={card.avatarUrl || userimg} alt="user" className={styles.rankImg} />
                     </div>
 
                     <div className={styles.cardInfo}>
-                        <p className={styles.userName}>{card.user}</p>
+                        <p className={styles.userName}>{card.fullName || 'no name'}</p>
                         <div>
-                            {card.status === 'online' ? (
-                                <p style={{ color: '#00F300', fontSize: '14px' }}>{card.status}</p>
+                            {card.onlineStatus === 'ONLINE' ? (
+                                <p style={{ color: '#00F300', fontSize: '14px' }}>{card.onlineStatus}</p>
                             ) : (
-                                <p style={{ color: '#adadad', fontSize: '14px' }}>{card.status} hours ago</p>
+                                <p style={{ color: 'rgb(164, 164, 164)', fontSize: '14px' }}>offline</p>
                             )}
                         </div>
                     </div>

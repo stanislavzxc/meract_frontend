@@ -13,7 +13,7 @@ export const chatApi = {
     return response.data;
   },
    createChat: async (id) => {
-    id = 2;
+    // id = 2;
     const response = await api.post(`/chat/direct/${id}`);
     return response.data;
   },

@@ -645,3 +645,27 @@
   transition: transform 0.2s ease;
 
 }
+/* В StreamViewer.module.css */
+.wsIndicator {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 20px;
+  z-index: 1000;
+  font-size: 12px;
+}
+
+.wsDot {
+  color: #4caf50;
+  animation: pulse 2s infinite;
+  margin-right: 5px;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}

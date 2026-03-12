@@ -28,6 +28,7 @@ export default function ActsPage() {
     const fetchData = async () => {
       try {
         const data = await actApi.getAllActs();
+        console.log(data,'acts')
         setActs(data);
       } catch (error) {
         console.error("Ошибка при загрузке:", error);

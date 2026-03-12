@@ -12,6 +12,10 @@ export const payApi = {
     const response = await api.get(`/payment/transactions/${id}`);
     return response.data;
   },
+  sendEcho: async (data) => {
+    const response = await api.post(`/payment/transfer-money`, data);
+    return response.data;
+  },
 
  
 };

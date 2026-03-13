@@ -221,7 +221,7 @@ background-image: url('../../..../../../images/login_background.png');
 }
 
 .forgotLink {
-  width: 100%;
+  width: fit-content;
   color: rgba(255, 255, 255, 0.7);
   text-align: end;
   text-decoration: none;

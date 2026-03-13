@@ -82,10 +82,11 @@ export default function Login() {
             <input type="checkbox" id="check" />
             <label htmlFor="check">Remember Password</label>
           </div> */}
-
-          <a href="#" onClick={handleForgotPassword} className={styles.forgotLink}>
-            Forget Password?
-          </a>
+          <div style={{width:'100%', display:'flex', justifyContent:'end',}}>
+            <a href="#" onClick={handleForgotPassword} className={styles.forgotLink}>
+              Forget Password?
+            </a>
+          </div>
 
           <button 
             type="submit" 

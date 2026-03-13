@@ -12,7 +12,7 @@ export default function ActsFilters() {
 
   const minGap = 1.0;
   const maxValue = 10.0;
-  const minVal = 1.0; 
+  const minVal = 0; 
   const range = maxValue - minVal;
  const [localFilters, setLocalFilters] = useState({
   actType: store.actType,
@@ -21,7 +21,7 @@ export default function ActsFilters() {
   selectedLang: store.selectedLang,
   selectedDistance: store.selectedDistance,
   selectedStatus: store.selectedStatus,
-  minRating: store.minRating || 1.0,
+  minRating: store.minRating || 0,
   maxRating: store.maxRating || 10.0,
 });
 
@@ -135,7 +135,7 @@ const handleSliderTwo = (e) => {
 
     <input 
       type="range" 
-      min="1.0" 
+      min="0" 
       max={maxValue} 
       step="0.1" 
       value={sliderMin} 

@@ -262,9 +262,11 @@
 .loadingTasks,
 .noTasks {
   text-align: center;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255);
   padding: 40px 20px;
-  font-size: 14px;
+  font-size: 18px;
+  margin-top: 30px;
+
 }
 
 .chatSection {

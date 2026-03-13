@@ -11,7 +11,7 @@ import {
 } from "react-leaflet";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { io } from 'socket.io-client'; // ВАЖНО!
+import { io } from 'socket.io-client';
 import api from "../../../shared/api/api";
 import { useSpotAgent } from "../../../shared/hooks/useSpotAgent";
 import { useAuthStore } from "../../../shared/stores/authStore";
@@ -69,6 +69,12 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
   const [selectedRecording, setSelectedRecording] = useState(null);
   const [recordingsExpanded, setRecordingsExpanded] = useState(false);
 
+  // Состояния для стримера
+  const [localVideoTrack, setLocalVideoTrack] = useState(null);
+  const [localAudioTrack, setLocalAudioTrack] = useState(null);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isStreamActive, setIsStreamActive] = useState(false);
+
   // WebSocket состояние
   const [wsConnected, setWsConnected] = useState(false);
   const socketRef = useRef(null);
@@ -96,10 +102,12 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
   // Spot Agent computed values
   const currentUserId = user?.id || user?.sub;
   const isInitiator = currentUserId === actualStreamData?.userId;
+  const isStreamer = currentUserId === actualStreamData?.userId; // Стример = инициатор
   const spotAgentCount = actualStreamData?.spotAgentCount || 0;
   const hasApplied = candidates.some((c) => c.userId === currentUserId);
 
   const remoteVideoRef = useRef(null);
+  const localVideoRef = useRef(null);
   const clientRef = useRef(null);
   const isConnectingRef = useRef(false);
   const streamStartTimeRef = useRef(null);
@@ -120,12 +128,17 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
     return channelName?.replace("act_", "") || streamData?.id || "default";
   }, [channelName, streamData]);
 
-  // Create UNIQUE UID for viewer
+  // Create UNIQUE UID - для стримера используем фиксированный uid, для зрителей - динамический
   const userIdNum = useMemo(() => {
-    const randomComponent = Math.floor(Math.random() * 1000);
-    const uid = parseInt(streamId) * 1000000 + (baseUserId % 100000) * 100 + randomComponent;
-    return uid;
-  }, [streamId, baseUserId]);
+    if (isStreamer) {
+      // Для стримера используем предсказуемый uid
+      return parseInt(streamId) * 1000000 + (baseUserId % 100000);
+    } else {
+      // Для зрителей - уникальный uid
+      const randomComponent = Math.floor(Math.random() * 1000);
+      return parseInt(streamId) * 1000000 + (baseUserId % 100000) * 100 + randomComponent;
+    }
+  }, [streamId, baseUserId, isStreamer]);
 
   // Use passed channelName or create from streamData
   const actualChannelName = channelName?.startsWith("act_")
@@ -176,11 +189,16 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
         ...prev, 
         status: 'OFFLINE' 
       }));
+      
+      // Если это стример и стрим остановлен
+      if (isStreamer) {
+        setIsStreamActive(false);
+        setIsPublishing(false);
+      }
     });
 
     socket.on('publisherJoined', (data) => {
       console.log('📡 Publisher joined:', data);
-      // Здесь Agora подключится автоматически через другой useEffect
     });
 
     socket.on('streamUpdate', (data) => {
@@ -211,7 +229,7 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
         socketRef.current.disconnect();
       }
     };
-  }, [actId, user?.id, user?.token]);
+  }, [actId, user?.id, user?.token, isStreamer]);
 
   // Load actual stream data from server
   useEffect(() => {
@@ -251,7 +269,6 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
         setRecordings(response.data || []);
       } catch (err) {
         console.error('Error fetching recordings:', err);
-        // Не показываем toast, так как это не критично
         setRecordings([]);
       } finally {
         setLoadingRecordings(false);
@@ -302,7 +319,7 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
     }
   }, []);
 
-  // Connect to Agora when stream is ONLINE
+  // Connect to Agora based on user role
   useEffect(() => {
     const connectToAgora = async () => {
       if (isConnectingRef.current) {
@@ -316,20 +333,29 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
         return;
       }
 
+      // Если это стример и стрим уже активен, не подключаемся снова
+      if (isStreamer && isStreamActive) {
+        console.log("Streamer already streaming, skipping...");
+        return;
+      }
+
       isConnectingRef.current = true;
       setError(null);
 
       try {
-        console.log("🔴 Getting Agora token for channel:", actualChannelName);
+        console.log(`🔴 Getting Agora token for ${isStreamer ? 'publisher' : 'subscriber'}:`, actualChannelName);
         console.log("🔴 User ID:", userIdNum);
 
+        const role = isStreamer ? 'publisher' : 'subscriber';
         const response = await api.get(
-          `/act/token/${actualChannelName}/SUBSCRIBER/uid?uid=${userIdNum}&expiry=3600`
+          // `/act/token/${actualChannelName}/${role}/uid?uid=${userIdNum}&expiry=3600`
+          `/act/token/${actualChannelName}/${role}/uid?uid=0&expiry=3600`
+        
         );
         
         const token = response.data.token;
         console.log("🔴 Token received:", token ? "✅" : "❌");
-
+        console.log("🔴🔴🔴", isPublishing, streamData.userId, currentUserId, streamData.userId==currentUserId)
         if (!token) {
           throw new Error("No token received");
         }
@@ -340,11 +366,19 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
           codec: "vp8" 
         });
         
-        await client.setClientRole("audience");
+        // Устанавливаем роль в зависимости от типа пользователя
+        await client.setClientRole(isStreamer ? "host" : "audience");
         clientRef.current = client;
 
+        // Обработчики событий
         client.on("user-published", async (user, mediaType) => {
-          console.log("🔴 User published:", user.uid, mediaType);
+          console.log("🔴 User published:", 0, mediaType);
+          
+          // Стример не подписывается на других (если только это не нужно для модерации)
+          if (isStreamer) {
+            console.log("Streamer ignoring other publishers");
+            return;
+          }
           
           try {
             await client.subscribe(user, mediaType);
@@ -389,6 +423,11 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
         setIsConnected(true);
         streamStartTimeRef.current = Date.now();
 
+        // Если это стример - начинаем публикацию
+        if (isStreamer) {
+          await startPublishing(client);
+        }
+
       } catch (err) {
         console.error("🔴 Connection error:", err);
         setError(err.response?.data?.message || err.message);
@@ -402,13 +441,109 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
 
     return () => {
       console.log("🔴 Cleaning up connection...");
-      if (clientRef.current && isConnected) {
-        clientRef.current.leave();
-        clientRef.current = null;
-      }
-      isConnectingRef.current = false;
+      cleanupAgora();
     };
-  }, [actualStreamData?.status, actualChannelName, userIdNum]);
+  }, [actualStreamData?.status, actualChannelName, userIdNum, isStreamer]);
+
+  // Функция для начала публикации стрима (для стримера)
+  const startPublishing = async (client) => {
+    try {
+      console.log("🎥 Starting to publish stream...");
+      
+      // Захватываем камеру и микрофон
+      const videoTrack = await AgoraRTC.createCameraVideoTrack();
+      const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      
+      setLocalVideoTrack(videoTrack);
+      setLocalAudioTrack(audioTrack);
+
+      // Показываем превью стримеру
+      if (localVideoRef.current) {
+        videoTrack.play(localVideoRef.current);
+      }
+
+      // Публикуем стрим
+      await client.publish([videoTrack, audioTrack]);
+      
+      setIsPublishing(true);
+      setIsStreamActive(true);
+      
+      console.log("🎥 Stream published successfully!");
+      
+      // Уведомляем бэкенд о начале стрима
+      await api.post(`/act/start-act?id=${actId}`);
+      
+      // Отправляем событие через WebSocket
+      if (socketRef.current) {
+        socketRef.current.emit('streamStarted', { actId: parseInt(actId) });
+      }
+      
+    } catch (err) {
+      console.error("Error publishing stream:", err);
+      setError("Failed to start streaming: " + err.message);
+      toast.error("Failed to start streaming");
+    }
+  };
+
+  // Функция для остановки стрима (для стримера)
+  const stopStreaming = async () => {
+    if (!clientRef.current || !isStreamer) return;
+    
+    try {
+      console.log("🛑 Stopping stream...");
+      
+      if (localVideoTrack && localAudioTrack) {
+        await clientRef.current.unpublish([localVideoTrack, localAudioTrack]);
+        localVideoTrack.close();
+        localAudioTrack.close();
+        
+        setLocalVideoTrack(null);
+        setLocalAudioTrack(null);
+      }
+      
+      await clientRef.current.leave();
+      
+      setIsPublishing(false);
+      setIsStreamActive(false);
+      setIsConnected(false);
+      
+      console.log("🛑 Stream stopped successfully");
+      
+      // Уведомляем бэкенд
+      await api.post(`/act/stop-act?id=${actId}`);
+      
+      // Отправляем событие через WebSocket
+      if (socketRef.current) {
+        socketRef.current.emit('streamStopped', { actId: parseInt(actId) });
+      }
+      
+      toast.success("Stream stopped");
+      
+    } catch (err) {
+      console.error("Error stopping stream:", err);
+      toast.error("Failed to stop stream");
+    }
+  };
+
+  // Очистка Agora соединения
+  const cleanupAgora = () => {
+    if (clientRef.current && isConnected) {
+      // Если это стример, сначала останавливаем публикацию
+      if (isStreamer && localVideoTrack && localAudioTrack) {
+        localVideoTrack.close();
+        localAudioTrack.close();
+      }
+      
+      clientRef.current.leave();
+      clientRef.current = null;
+    }
+    
+    setLocalVideoTrack(null);
+    setLocalAudioTrack(null);
+    setIsPublishing(false);
+    setIsStreamActive(false);
+    isConnectingRef.current = false;
+  };
 
   // Timer for stream duration
   useEffect(() => {
@@ -492,8 +627,6 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
           longitude: actualStreamData.destinationLongitude,
         });
       }
-
-      // ... rest of route fetching logic
     };
 
     if (actualStreamData) {
@@ -505,7 +638,9 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
     try {
       console.log("Disconnecting from stream:", streamData?.id);
 
-      if (clientRef.current) {
+      if (isStreamer) {
+        await stopStreaming();
+      } else if (clientRef.current) {
         await clientRef.current.leave();
       }
 
@@ -562,7 +697,6 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
   // Обработчики для записей
   const handlePlayRecording = async (recording) => {
     try {
-
       const response = await api.get(`/agora-recording/recordings/stream/${recording.key}`);
       setRecordingUrl(response.data.url);
       setSelectedRecording(recording);
@@ -616,14 +750,15 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
 
   return (
     <div className={styles.container}>
-      {/* Индикатор WebSocket */}
-      {wsConnected && (
-        <div className={styles.wsIndicator}>
-          <span className={styles.wsDot}>●</span> Live
-        </div>
-      )}
+      {/* Индикатор WebSocket
+      <div className={styles.wsIndicator}>
+        <span>WebSocket: {wsConnected ? '✅' : '❌'}</span>
+        <span>Stream: {actualStreamData?.status || 'UNKNOWN'}</span>
+        {!isStreamer && <span>Publishers: {remoteUsers.length}</span>}
+        {isStreamer && <span>Streaming: {isPublishing ? '🔴 LIVE' : '⏸️ STOPPED'}</span>}
+      </div> */}
 
-      {actualStreamData?.status === 'ONLINE' ? (
+      {actualStreamData?.status === 'ONLINE' || (isStreamer && isPublishing) ? (
         <>
           <div className={styles.header}>
             <div className={styles.header_cont}>
@@ -633,10 +768,17 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
                   <circle cx="10" cy="10" r="5" fill="white" />
                 </svg>
                 <p className={styles.live}>LIVE</p>
-                {isConnected && (
-                  <span className={styles.duration}>{formatDuration(streamDuration)}</span>
-                )}
               </div>
+              
+              {/* Кнопка остановки стрима для стримера */}
+              {/* {isStreamer && isPublishing && (
+                <button 
+                  className={styles.stopStreamButton}
+                  onClick={stopStreaming}
+                >
+                  🛑 Stop Stream
+                </button>
+              )} */}
             </div>
 
             {(streamData?.navigator ||
@@ -661,15 +803,29 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
           </div>
 
           <div className={styles.videoContainer}>
-            <div 
-              ref={remoteVideoRef} 
-              className={styles.videoElement}
-              style={{
-                width: '100%',
-                height: '100%',
-                backgroundColor: '#1a1a1a',
-              }}
-            />
+            {/* Для стримера показываем локальное видео */}
+            {isStreamer ? (
+              <div 
+                ref={localVideoRef} 
+                className={styles.videoElement}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  backgroundColor: '#1a1a1a',
+                }}
+              />
+            ) : (
+              // Для зрителей показываем удаленное видео
+              <div 
+                ref={remoteVideoRef} 
+                className={styles.videoElement}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  backgroundColor: '#1a1a1a',
+                }}
+              />
+            )}
             
             {!isConnected && !error && (
               <div className={styles.connectingOverlay}>
@@ -686,15 +842,19 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
               </div>
             )}
             
-            {isConnected && remoteUsers.length === 0 && (
+            {isConnected && !isStreamer && remoteUsers.length === 0 && (
               <div className={styles.waitingOverlay}>
                 <p>Waiting for streamer...</p>
               </div>
             )}
             
-            {isConnected && remoteUsers.length > 0 && (
+            {isConnected && (
               <div className={styles.connectedOverlay}>
-                <p>Connected - {remoteUsers.length} publisher(s)</p>
+                {isStreamer ? (
+                  <p>Streaming - {remoteUsers.length} viewer(s)</p>
+                ) : (
+                  <p>Connected - {remoteUsers.length} publisher(s)</p>
+                )}
               </div>
             )}
           </div>
@@ -716,7 +876,9 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
               <button className={styles.actionButton}>
                 <img src={messages} alt="Chat" />
               </button>
-              {!isInitiator &&
+              
+              {/* Кнопка для Spot Agent (только для зрителей, не для стримера) */}
+              {!isStreamer && !isInitiator &&
                 spotAgentCount > 0 &&
                 assignedAgents.length < spotAgentCount && (
                   <button
@@ -734,7 +896,7 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
             </div>
           </div>
 
-          {/* Блок записей */}
+          {/* Блок записей (доступен всем) */}
           {!loadingRecordings && recordings.length > 0 && (
             <div className={styles.recordingsContainer}>
               <div 
@@ -979,19 +1141,18 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
             </div>
           </div>
           <div className={styles.waitingContainer}>
-            <h2 style={{color:'white', margin:'auto', textAlign:'center'}}>
-              {actualStreamData?.liveIn ? 
-                `Stream starts in ${actualStreamData.liveIn}` : 
-                "Stream will start soon"}
+            <h2 style={{color:'white', textAlign:'center'}}>
+              {isStreamer ? (
+                "Start your stream by going ONLINE"
+              ) : (
+                actualStreamData?.liveIn ? 
+                  `Stream starts in ${actualStreamData.liveIn}` : 
+                   "Stream will start soon"
+              )}
             </h2>
           </div>
         </>
       )}
-<div className={styles.statusIndicator}>
-  <span>WebSocket: {wsConnected ? '✅' : '❌'}</span>
-  <span style={{color:'white',}}>Stream: {actualStreamData?.status || 'UNKNOWN'}</span>
-  <span style={{color:'white',}}>Publishers: {remoteUsers.length}</span>
-</div>
     </div>
   );
 };

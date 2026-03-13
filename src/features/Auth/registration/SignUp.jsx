@@ -20,12 +20,13 @@ const ModalLayout = ({ title, children, onClose, onSave, saveText = 'Save' }) =>
         </div>
     </div>
 );
+
 export default function SignUp() {
-   const [email, setEmail] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
-  const [surname, setSurname] = useState("");
-  const [repeat_password, setRepeat] = useState("");
+  const [login, setLogin] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [repassword, setRepassword] = useState("");
   const [agred, setAgred] = useState(false);
   
   const [step, setStep] = useState(1); 
@@ -34,7 +35,10 @@ export default function SignUp() {
   const passwordInputRefs = useRef([]);
 
   const [selectedAvatar, setSelectedAvatar] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState(null);
   const fileInputRef = useRef(null);
+  
   const { signUp, verify, loading, error, success } = useSignUp();
   const navigate = useNavigate();
 
@@ -44,29 +48,83 @@ export default function SignUp() {
   });
   let avatars = Object.values(avatarModules);
   avatars = avatars.slice(0,20);
-  const isCustomAvatar = selectedAvatar && !avatars.includes(selectedAvatar);
-
+  
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const customUrl = URL.createObjectURL(file);
-      setSelectedAvatar(customUrl);
+      setSelectedAvatar(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result);
+        setSelectedAvatarUrl(null);
+      };
+      reader.readAsDataURL(file);
     }
     e.target.value = ""; 
   };
 
+  const handleSelectPredefinedAvatar = async (src) => {
+    try {
+      const response = await fetch(src);
+      const blob = await response.blob();
+      const file = new File([blob], 'avatar.png', { type: 'image/png' });
+      
+      setSelectedAvatar(file);
+      setSelectedAvatarUrl(src);
+      setAvatarPreview(null);
+    } catch (error) {
+      console.error('Error loading predefined avatar:', error);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (password !== repeat_password) {
+    
+    // Валидация
+    if (!login || login.trim() === '') {
+      alert('Login cannot be empty');
+      return;
+    }
+    
+    if (!email || email.trim() === '') {
+      alert('Email cannot be empty');
+      return;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      alert('Invalid email format');
+      return;
+    }
+    
+    if (password !== repassword) {
       alert('Passwords do not match');
       return;
     }
-    if (!selectedAvatar) {
-      alert('Please choose an avatar');
+    
+    if (password.length < 5 || password.length > 20) {
+      alert('Password must be between 5 and 20 characters');
       return;
     }
 
-    const ok = await signUp(email, password, username, surname, selectedAvatar); 
+    console.log('Sending data:', {
+      login,
+      email,
+      password,
+      repassword,
+      fullName,
+      avatar: selectedAvatar ? selectedAvatar.name : 'no avatar'
+    });
+
+    const ok = await signUp(
+      login,
+      email,
+      password,
+      repassword,
+      fullName,
+      selectedAvatar // передаем файл, хук сам сконвертирует в base64
+    );
+    
     if(ok) setStep(2);
   };
 
@@ -74,14 +132,13 @@ export default function SignUp() {
     setStep(1); 
   };
 
-  const signUpMethod = () => {
-    setStep(2); 
-  };
-
-  const  vefifycode = async() => {
-    console.log('Код из модалки:', passwordOtp.join(''));
-     const ok = await verify(passwordOtp.join(''));
-     if(ok) setStep(1);  
+  const verifyCode = async() => {
+    const code = passwordOtp.join('');
+    console.log('Verification code:', code);
+    const ok = await verify(code);
+    if(ok) {
+      navigate("/login");
+    }
   };
 
   const handlePasswordOtpChange = (val, idx) => {
@@ -97,9 +154,15 @@ export default function SignUp() {
     }
   };
 
+  const getAvatarPreview = () => {
+    if (avatarPreview) return avatarPreview;
+    if (selectedAvatarUrl) return selectedAvatarUrl;
+    return null;
+  };
+
   return (
     <div className={styles.container}>
-      { step == 1 ?
+      { step === 1 ?
       <div className={styles.contentWrapper}>
         <div className={styles.backButton} onClick={() => navigate("/login")}>
           <img src={arrowLeft} alt="Back" className={styles.backIcon} />
@@ -125,20 +188,21 @@ export default function SignUp() {
               />
 
               <div 
-                className={`${styles.avatarWrapper} ${styles.addButton} ${isCustomAvatar ? styles.activeAvatar : ''}`}
+                className={`${styles.avatarWrapper} ${styles.addButton} ${selectedAvatar && !selectedAvatarUrl ? styles.activeAvatar : ''}`}
                 onClick={() => fileInputRef.current.click()}
               >
-                {isCustomAvatar ? (
-                  <img src={selectedAvatar} alt="Custom" className={styles.avatarImg} />
+                {getAvatarPreview() ? (
+                  <img src={getAvatarPreview()} alt="Custom" className={styles.avatarImg} />
                 ) : (
                   <img src={addIcon} alt="Add" className={styles.addImg} />
                 )}
               </div>
+              
               {avatars.map((src, index) => (
                 <div 
                   key={index}
-                  className={`${styles.avatarWrapper} ${selectedAvatar === src ? styles.activeAvatar : ''}`}
-                  onClick={() => setSelectedAvatar(src)}
+                  className={`${styles.avatarWrapper} ${selectedAvatarUrl === src ? styles.activeAvatar : ''}`}
+                  onClick={() => handleSelectPredefinedAvatar(src)}
                 >
                   <img src={src} alt={`Avatar ${index + 1}`} className={styles.avatarImg} />
                 </div>
@@ -150,27 +214,29 @@ export default function SignUp() {
             <div className={styles.inputGroup}>
               <input
                 type="text"
-                placeholder="Username"
+                placeholder="Login *"
                 className={styles.input}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={login}
+                onChange={(e) => setLogin(e.target.value)}
                 disabled={loading || success}
               />
             </div>
+            
             <div className={styles.inputGroup}>
               <input
                 type="text"
-                placeholder="Name and surname"
+                placeholder="Full name"
                 className={styles.input}
-                value={surname}
-                onChange={(e) => setSurname(e.target.value)}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 disabled={loading || success}
               />
             </div>
+            
             <div className={styles.inputGroup}>
               <input
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Email *"
                 className={styles.input}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -181,20 +247,21 @@ export default function SignUp() {
             <div className={styles.inputGroup}>
               <input
                 type="password"
-                placeholder="Enter your password"
+                placeholder="Password * (5-20 characters)"
                 className={styles.input}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading || success}
               />
             </div>
+            
             <div className={styles.inputGroup}>
               <input
                 type="password"
-                placeholder="Repeat your password"
+                placeholder="Repeat password *"
                 className={styles.input}
-                value={repeat_password}
-                onChange={(e) => setRepeat(e.target.value)}
+                value={repassword}
+                onChange={(e) => setRepassword(e.target.value)}
                 disabled={loading || success}
               />
             </div>
@@ -217,15 +284,14 @@ export default function SignUp() {
             <button
               type="submit"
               className={styles.button}
-              disabled={loading || !email || !password || success || !agred || !selectedAvatar}
-            
+              disabled={loading || !login || !email || !password || !repassword || success || !agred}
             >
               {loading ? "Registering..." : "Sign Up"}
             </button>
 
             {error && <p className={styles.error}>{error}</p>}
             {success && (
-              <p className={styles.successText}>Registration successful!</p>
+              <p className={styles.successText}>Registration successful! Please check your email for verification code.</p>
             )}
           </form>
         </div>
@@ -233,14 +299,14 @@ export default function SignUp() {
       
       : 
       <div className={styles.contentWrapper}>
-      <div className={styles.backButton} onClick={() => setStep(1)} style={{zIndex:'99999',}}>
+        <div className={styles.backButton} onClick={() => setStep(1)} style={{zIndex:'99999',}}>
           <img src={arrowLeft} alt="Back" className={styles.backIcon} />
           <p className={styles.backText}>Back</p>
         </div>
         <ModalLayout 
           title="Enter the code" 
           onClose={handleCloseModal} 
-          onSave={vefifycode} 
+          onSave={verifyCode} 
           saveText="Confirm"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', }}>
@@ -257,17 +323,15 @@ export default function SignUp() {
                   value={digit}
                   onChange={(e) => handlePasswordOtpChange(e.target.value, idx)}
                   className={styles.modalInput}
-                  style={{ textAlign: 'center', height: '50px',  }}
+                  style={{ textAlign: 'center', height: '50px' }}
                   placeholder="0"
                 />
               ))}
             </div>
           </div>
         </ModalLayout>
-        </div>
-
+      </div>
       }    
-
     </div>
   );
 }

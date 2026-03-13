@@ -39,7 +39,7 @@ useEffect(() => {
           setLocation(`${actsdata.initiator.city || ''}, ${actsdata.initiator.country || ''}`);
         }
 
-        setDistance(actsdata.distanceKm || 'no distance');
+        setDistance(actsdata.distanceKm || null);
         setRating(actsdata.rating || 0.0);
         setRawImageUrl(actsdata.previewFileName);
         console.log(actsdata, '!!!!!!!!!!!!!!!!!!!!!')
@@ -173,7 +173,12 @@ useEffect(() => {
                 </div>
               <div style={{  padding: '2px 4px', borderRadius: '8px' }}>
                 <div style={{ background:'#252525', width:'fit-content', padding:'4px 5px', borderRadius:'8px', border:'none',}}>
-                  <p className={styles.desc} style={{ color:'#c0c0c0',}}>{distance}km away</p>
+                  {distance ?
+                    <p className={styles.desc} style={{ color:'#c0c0c0',}}>{distance}km away</p>
+                  :
+                    <p className={styles.desc} style={{ color:'#c0c0c0',}}>no distance</p>
+                  
+                  }
                 </div>
               </div>
 

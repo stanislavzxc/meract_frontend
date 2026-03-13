@@ -561,10 +561,12 @@
 
 .loadingTasks,
 .noTasks {
-  text-align: center;
-  color: rgba(255, 255, 255, 0.6);
+   text-align: center;
+  color: rgba(255, 255, 255);
   padding: 40px 20px;
-  font-size: 14px;
+  font-size: 18px;
+  margin-top: 30px;
+
 }
 
 /* Spot Agent Button Styles */
@@ -668,4 +670,8 @@
   0% { opacity: 1; }
   50% { opacity: 0.5; }
   100% { opacity: 1; }
+}
+
+.waitingContainer{
+  margin: auto;
 }

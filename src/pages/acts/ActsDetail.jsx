@@ -97,41 +97,25 @@ const maxHeroPercent = Math.max(...heroes.map(a => parseFloat(a.percent) || 0));
   }, [id]);
 
   
-  const handlenavigatorClick = (clickedNav) => {
+const handlenavigatorClick = (clickedNav) => {
   if (!isAdmin) return;
-  if (!selectedNav) {
-    setSelectedNav(clickedNav);
+  
+  // Просто устанавливаем выбранного навигатора или снимаем выбор
+  if (selectedNav?.id === clickedNav.id) {
+    setSelectedNav(null); // Снимаем выбор, если кликнули на того же
   } else {
-    if (selectedNav.id === clickedNav.id) {
-      setSelectedNav(null);
-      return;
-    }
-    const updated = navigators.map(a => {
-      if (a.id === clickedNav.id) return { ...a, percent: selectedNav.percent }; // или ваша логика обмена
-      if (a.id === selectedNav.id) return { ...a, percent: clickedNav.percent };
-      return a;
-    });
-    setnavigators(updated);
-    setSelectedNav(null);
+    setSelectedNav(clickedNav); // Выбираем нового
   }
 };
 
 const handleheroClick = (clickedHero) => {
   if (!isAdmin) return;
-  if (!selectedHero) {
-    setSelectedHero(clickedHero);
+  
+  // Просто устанавливаем выбранного героя или снимаем выбор
+  if (selectedHero?.id === clickedHero.id) {
+    setSelectedHero(null); // Снимаем выбор, если кликнули на того же
   } else {
-    if (selectedHero.id === clickedHero.id) {
-      setSelectedHero(null);
-      return;
-    }
-    const updated = heroes.map(h => {
-      if (h.id === clickedHero.id) return { ...h, percent: selectedHero.percent };
-      if (h.id === selectedHero.id) return { ...h, percent: clickedHero.percent };
-      return h;
-    });
-    setheroes(updated);
-    setSelectedHero(null);
+    setSelectedHero(clickedHero); // Выбираем нового
   }
 };
 
@@ -202,9 +186,9 @@ const join = () => {
                             <p style={{color:'#00F300'}}>{rating}</p>
                           </div>
                           <p className={styles.desc} style={{color:'#c0c0c0',}}>{date}</p>
-                          {seasons == '1' 
-                            ?<p className={styles.desc} style={{color:'#c0c0c0',}}>{seasons} Season</p>
-                            :<p className={styles.desc} style={{color:'#c0c0c0',}}>{seasons} Seasons</p>
+                          {seasons && seasons == 1 
+                            ? <p className={styles.desc} style={{color:'#c0c0c0'}}>1 Season</p>
+                            : <p className={styles.desc} style={{color:'#c0c0c0'}}>{seasons || 0} Seasons</p>
                           }
                         </div>
                         <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', padding: '2px 0' }}>
@@ -229,8 +213,15 @@ const join = () => {
                       </div>
                       <div className={styles.savecard}>
                         <div style={{display:'flex', gap:'5px',}} >
+                          {time[0] != '0' ?
+                          <>
                           <h3>Live stream via:</h3>
                           <p style={{color:'#c0c0c0',}}>{time}</p>
+                          </>
+                          :
+                          <h3>Live</h3>
+
+                          }
                         </div>
                       <div className={styles.savebutton} style={{marginTop:'0px',}}>
                         <button className={styles.active} onClick={() => join()}>Watch</button>
@@ -241,7 +232,7 @@ const join = () => {
         </div>
 
        
-        <div className={styles.parentnav}>
+        {/* <div className={styles.parentnav}>
   <div className={styles.navigators}>
     <div className={styles.cardcontfirst}>
       <p className={styles.title} style={{ fontSize: '18px', margin: '0px' }}>Select the act navigator</p>
@@ -329,7 +320,7 @@ const join = () => {
       })}
     </div>
   </div>
-</div>
+</div> */}
 
 
 

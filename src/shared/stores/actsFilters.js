@@ -28,7 +28,7 @@ export const useFilterStore = create((set) => ({
     selectedLang: "English", 
     selectedDistance: "1km",
     selectedStatus: "active",
-    minRating: 1.0, 
+    minRating: 0, 
     maxRating: 10.0 
   }),
 }));

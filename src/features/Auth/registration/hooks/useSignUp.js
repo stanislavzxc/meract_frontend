@@ -1,5 +1,4 @@
 import { useState } from "react";
-
 import api from "../../../../shared/api/api";
 import { useAuthStore } from "../../../../shared/stores/authStore";
 
@@ -8,35 +7,39 @@ export function useSignUp() {
   const [success, setSuccess] = useState(false);
   const { login, setLoading, isLoading } = useAuthStore();
 
-  async function signUp(email, password, username, surname, selectedAvatar) {
+  async function signUp(login, email, password, repassword, fullName, avatarFile) {
     setLoading(true);
     setError("");
     setSuccess(false);
 
     try {
-      let avatarData = selectedAvatar;
+      // Конвертируем аватар в base64, если он есть
+      let avatarBase64 = null;
+      if (avatarFile) {
+        avatarBase64 = await toBase64(avatarFile);
+      }
 
-      if (selectedAvatar instanceof File || selectedAvatar instanceof Blob) {
-        avatarData = await toBase64(selectedAvatar);
-      } 
+      // Отправляем как JSON
       const res = await api.post("/auth/sign-up", {
-         login: username,
-         fullName: surname,
-         email: email, 
-         password: password,
-         repassword: password,
-         avatar: avatarData, 
+        login: login,
+        email: email,
+        password: password,
+        repassword: repassword,
+        fullName: fullName || '',
       });
 
+      console.log('Sign up response:', res.data);
       setSuccess(true);
       return true;
     } catch (e) {
+      console.error('Sign up error:', e.response?.data || e.message);
       setError(e?.response?.data?.message || "Registration error");
       return false;
     } finally {
       setLoading(false);
     }
   }
+
   async function verify(code) {
     setLoading(true);
     setError("");
@@ -44,10 +47,12 @@ export function useSignUp() {
 
     try {
       const res = await api.get(`/auth/verify-email?code=${code}`);
+      console.log('Verify response:', res.data);
       setSuccess(true);
       return true;
     } catch (e) {
-      setError(e?.response?.data?.message || "Registration error");
+      console.error('Verify error:', e.response?.data || e.message);
+      setError(e?.response?.data?.message || "Verification error");
       return false;
     } finally {
       setLoading(false);
@@ -58,9 +63,12 @@ export function useSignUp() {
 }
 
 const toBase64 = file => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = error => reject(error);
+  const reader = new FileReader();
+  reader.readAsDataURL(file);
+  reader.onload = () => {
+    // Убираем префикс "data:image/png;base64," если он есть
+    const base64String = reader.result.split(',')[1] || reader.result;
+    resolve(base64String);
+  };
+  reader.onerror = error => reject(error);
 });
-

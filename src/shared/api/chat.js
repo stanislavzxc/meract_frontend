@@ -13,10 +13,48 @@ export const chatApi = {
     return response.data;
   },
    createChat: async (id) => {
-    // id = 2;
     const response = await api.post(`/chat/direct/${id}`);
     return response.data;
   },
+  createChatGroup: async (name, ids, image, actId) => {  
+  const token = useAuthStore.getState().getToken();
+  const formData = new FormData();
+  
+  if (name) formData.append('name', name);
+  
+  // Важно: participantIds должен быть строкой JSON
+  if (ids && Array.isArray(ids)) {
+    // Преобразуем массив [1] в строку "[1]"
+    const idsJson = JSON.stringify(ids);
+    console.log('Sending participantIds as JSON string:', idsJson);
+    formData.append('participantIds', idsJson); // Отправляем как строку JSON
+  } else {
+    console.error('ids is not an array:', ids);
+  }
+  
+  if (image && image instanceof File) {
+    formData.append('image', image);
+  }
+  
+  if (actId) {
+    formData.append('actId', actId);
+  }
+  
+  const response = await axios.post(
+    `${import.meta.env.VITE_API_URL}/chat/group`, 
+    formData, 
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data', 
+        'Authorization': `Bearer ${token}`
+      },
+      withCredentials: true
+    }
+  );
+
+  return response.data;
+},
+  
     getMessages: async (id) => {
     const response = await api.get(`/chat/${id}/messages`);
     return response.data;

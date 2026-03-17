@@ -252,10 +252,14 @@ useEffect(() => {
             className={styles.dropdown} 
             onClick={(e) => e.stopPropagation()} 
           >
+            {(isMember || isAdmin) && (
             <div className={styles.dpopitem}>
               <img src={notification} alt="" />
               <div className={styles.menuItem}>Turn off notifications</div>
             </div>
+            )
+
+            }
             <div className={styles.dpopitem}>
               <img src={adduser} alt="" />
               <div className={styles.menuItem} onClick={() => navigate(`/guild-settings/${id}`)}>Invite member</div>
@@ -292,7 +296,7 @@ useEffect(() => {
           <div className={styles.head}>
             <img src={guildImg} alt="" className={styles.avatar} />
             <div className={styles.headtext}>
-              <h1 className={styles.title}>{guild?.name || title}</h1>
+              <h1 className={styles.title}>{guild?.name || 'no name'}</h1>
               <div className={styles.usersdiv}>
                 <img src={userimg} alt="" />
                 <p className={styles.desc} style={{ color: '#c9c8c8' }}>{usersCount}</p>
@@ -323,7 +327,7 @@ useEffect(() => {
             <button className={navMethod === 1 ? styles.active : ""} onClick={() => setNavMethod(1)}>
               Members
               {isAdmin && joinusers.length > 0 &&
-                <div style={{background:'#E74209', borderRadius:'8px',}}>
+                <div style={{background:'#E74209', borderRadius:'8px', padding:'3px', padding:'1px 4px',}}>
                   +{joinusers.length}
                 </div>
               }
@@ -338,7 +342,7 @@ useEffect(() => {
           <div className={styles.cardcont} >
               {isAdmin && joinusers.length > 0 &&
                 <>
-                <p style={{color:'#cecece',}}>Potential guilders</p>
+                <p style={{color:'#cecece', fontSize:'14px',}}>Potential guilders</p>
 
             {joinusers.map((member) => (
               <div key={member.id} className={styles.members} style={{display:'flex', flexDirection:'column', }}>
@@ -374,7 +378,7 @@ useEffect(() => {
               }
 
           <div style={{marginTop: joinusers.length > 0 ? '20px' : '0px', display:'flex', flexDirection:'column', gap:'10px',}}>
-               <p style={{color:'#cecece',}}>Guild members</p>
+               <p style={{color:'#cecece', fontSize:'14px',}}>Guild members</p>
 
             {members.map((member) => (
               <div key={member.id} className={styles.members}>
@@ -454,7 +458,7 @@ useEffect(() => {
         )}
         {navMethod === 0 && (
           <div className={styles.cardcont}>
-            <p className={styles.subtitle} style={{color:'#979595',}}>Guild Acts: <span style={{color:'white', fontWeight:'bolder',}}>{actscount}/160</span></p>
+            <p className={styles.subtitle} style={{color:'#cecece', fontSize:'14px',}}>Guild Acts: <span style={{color:'white', fontWeight:'bolder',}}>{actscount}/160</span></p>
             {acts.map((act, index) => (
               <ActCard key={index} act={act} titleact={false}/>
             ))}

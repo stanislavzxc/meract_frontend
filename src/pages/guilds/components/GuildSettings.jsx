@@ -7,17 +7,18 @@ import styles from './GuildSettings.module.css';
 import arrowLeft from '../../../images/arrow-left.png';
 import iconguild from '../../../images/iconguild.png'; 
 import notification from '../../../images/notification.png';
+import { profileApi } from "../../../shared/api/profile";
 
 const GuildSettings = () => {
     const navigate = useNavigate();
     const { id } = useParams();
-    const location = useLocation(); // Чтобы понять, откуда пришли (инвайт или настройки)
+    const location = useLocation(); 
     
     const avatarInputRef = useRef(null);
     const coverInputRef = useRef(null);
-    const inviteSectionRef = useRef(null); // Реф для скролла к инвайтам
-    
-    const isAdmin = true;
+    const inviteSectionRef = useRef(null); 
+    const [userid, setUserId] = useState();
+    const [isAdmin, setIsAdmin] = useState(false);
     
     // Состояния загрузки
     const [loading, setLoading] = useState(false);
@@ -37,27 +38,39 @@ const GuildSettings = () => {
 const [inviteError, setInviteError] = useState(false);
 
     useEffect(() => {
-        const loadAllData = async () => {
-            if (!id) return;
-            try {
-                setLoading(true);
-                const guildData = await guildApi.getGuild(id);
-                if (guildData) {
-                    setName(guildData.name || '');
-                    setDescription(guildData.description || '');
-                    setAvatarPreview(guildData.logoFileName || null);
-                    setCoverPreview(guildData.coverFileName || null);
-                }
-            } catch (error) {
-                console.error("Ошибка загрузки:", error);
-            } finally {
-                setLoading(false);
+    const loadAllData = async () => {
+        if (!id) return;
+        try {
+            setLoading(true);
+            
+            // Получаем данные параллельно
+            const [profiledata, guildData] = await Promise.all([
+                profileApi.getProfile(),
+                guildApi.getGuild(id)
+            ]);
+            if (guildData) {
+                setName(guildData.name || '');
+                setDescription(guildData.description || '');
+                setAvatarPreview(guildData.logoFileName || null);
+                setCoverPreview(guildData.coverFileName || null);
             }
-        };
-        loadAllData();
-    }, [id]);
 
-    // Эффект для скролла к инвайтам, если нажали "Invite member" в меню
+            if (profiledata) {
+                setUserId(profiledata.id);
+                const isUserAdmin = profiledata.id === guildData?.ownerId;
+                setIsAdmin(isUserAdmin);
+            }
+            
+        } catch (error) {
+            console.error("❌ err:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    loadAllData();
+}, [id]); 
+
     useEffect(() => {
         if (location.hash === '#invite' && inviteSectionRef.current) {
             inviteSectionRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -208,6 +221,7 @@ const [inviteError, setInviteError] = useState(false);
             </div>
 
             {/* КНОПКА СОХРАНЕНИЯ */}
+            {isAdmin &&
             <div className={styles.paragraph}>
                 <div className={styles.active}>
                     <button className={styles.savebutton} onClick={handleSave} disabled={isSaving}>
@@ -215,6 +229,7 @@ const [inviteError, setInviteError] = useState(false);
                     </button>
                 </div> 
             </div>          
+            }
         </div>
     );
 };

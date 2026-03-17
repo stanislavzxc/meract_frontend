@@ -40,6 +40,7 @@ export default function ChatPage() {
     const fetchChats = async () => {
       try {
         const data = await chatApi.getAll();
+        console.log(data)
         setCards(data);
       } catch (error) {
         console.error(error);
@@ -59,7 +60,7 @@ export default function ChatPage() {
   }, [searchTerm, cards]);
 
   const toChat = (type, id, userId) => {
-    type === 'direct' ? navigate(`/chat/${id}/${userId}`) : navigate(`/acts`);
+    type === 'direct' ? navigate(`/chat/${id}/${userId}`) : navigate(`/group/${id}`);
   };
 
   return (
@@ -112,7 +113,7 @@ export default function ChatPage() {
               onClick={() => toChat(card.type, card.id, card.partner?.id)}
             >
               <div className={styles.rankBadge}>
-                <img src={card.imageUrl || userimg} alt="avatar" className={styles.rankImg} />
+                <img src={card.imageUrl || userimg} alt="no avatar" className={styles.rankImg} style={{color:'white', fontSize:'small',}}/>
               </div>
 
               <div className={styles.cardInfo}>

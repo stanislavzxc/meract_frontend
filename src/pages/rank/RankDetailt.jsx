@@ -122,7 +122,7 @@ const RankDetails = () => {
             <div className={styles.parent}>
                 <div className={styles.profile}>
                     <img src={userData.avatarUrl || logo} alt="avatar" className={styles.logo} />
-                    <p className={styles.title}>{userData.fullName || 'no name'}</p>
+                    <p className={styles.title} style={{fontWeight:'600',fontSize:'16px', margin:'0px',}}>{userData.fullName || 'no name'}</p>
                     {isOnline ? (
                         <p className={styles.subtitle}>online</p>
                     ) : userData.onlineStatus ? (
@@ -158,6 +158,23 @@ const RankDetails = () => {
 
                     </div>
                 </div>
+                <div className={styles.cardcont}>
+                    <div className={styles.card}>
+                        <div className={styles.cardInfo}>
+                            <p className={styles.subtitle}>Username</p>
+                            <p className={styles.userName}>{userData.login || 'no username'}</p>
+                        </div>
+                        {userData.login &&
+                        <img 
+                            className={styles.arrowIcon} 
+                            src={copy}
+                            alt="copy"
+                            style={{ opacity: '1', cursor: 'pointer' }}
+                            onClick={copyText}
+                        />
+                        }
+                    </div>
+                </div>
                 <div className={styles.cardwrap}>
                     <div className={styles.card}>
                         <div className={styles.cardInfo}>
@@ -186,21 +203,7 @@ const RankDetails = () => {
                         </div>
                     </div>
                 </div>
-                <div className={styles.cardcont}>
-                    <div className={styles.card}>
-                        <div className={styles.cardInfo}>
-                            <p className={styles.subtitle}>Username</p>
-                            <p className={styles.userName}>{userData.login}</p>
-                        </div>
-                        <img 
-                            className={styles.arrowIcon} 
-                            src={copy}
-                            alt="copy"
-                            style={{ opacity: '1', cursor: 'pointer' }}
-                            onClick={copyText}
-                        />
-                    </div>
-                </div>
+                
                 <div>
                     {currentId != id &&
                     <div className={styles.btncont}>

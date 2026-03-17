@@ -387,6 +387,40 @@ const ChatSingle = () => {
       setShowControls(true);
     }
   };
+// Функция форматирования времени
+const formatLastSeen = (statusString) => {
+  if (!statusString) return 'offline';
+  
+  const hoursMatch = statusString.match(/(\d+)h/);
+  const minutesMatch = statusString.match(/(\d+)m/);
+  
+  if (hoursMatch) {
+    const hours = parseInt(hoursMatch[1], 10);
+    const minutes = minutesMatch ? parseInt(minutesMatch[1], 10) : 0;
+    
+    if (hours >= 24) {
+      const days = Math.floor(hours / 24);
+      const remainingHours = hours % 24;
+      
+      if (days === 1) {
+        if (remainingHours > 0 || minutes > 0) {
+          return `1d ${remainingHours}h`;
+        } else {
+          return '1d';
+        }
+      } else {
+        if (remainingHours > 0 || minutes > 0) {
+          return `${days}d ${remainingHours}h`;
+        } else {
+          return `${days}d`;
+        }
+      }
+    }
+  }
+  
+  return statusString;
+};
+
   const deleteChat = async() => {
     await chatApi.deleteChat(id);
     navigate('/chats')
@@ -412,12 +446,12 @@ const ChatSingle = () => {
             onClick={() => navigate(`/profile/${id}/${userId}`)}
           >
             <div className={styles.rankBadge}>
-              <img src={card.avatarUrl || userimg} alt="avatar" className={styles.rankImg} />
+              <img src={card.avatarUrl || userimg}  className={styles.rankImg} style={{color:'white',}}/>
             </div>
             <div className={styles.cardInfo}>
               <p className={styles.userName}>{card.login || 'User'}</p>
               <p style={{ color: '#bbb', fontSize: '12px', margin: 0 }}>
-                {card.status || 'offline'}
+                last seen {formatLastSeen(card.status)}
               </p>
             </div>
           </div>

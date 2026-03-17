@@ -20,6 +20,10 @@ export const achievementApi = {
   },
 
   awardAchievement: async (awardData) => {
+    awardData = {
+  achievementId: 2,
+  userId: 4
+}
     const response = await api.post("/achievement/award", awardData);
     return response.data;
   },
@@ -41,4 +45,9 @@ export const achievementApi = {
     const response = await api.delete(`/achievement/delete-achievement/${id}`);
     return response.data;
   },
+  changeIsBest: async (achievementId) => {
+    const responses = await api.patch(`/achievement/user/best/${achievementId}`);
+    return response.data;
+    
+  }
 };

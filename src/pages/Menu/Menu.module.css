@@ -92,4 +92,7 @@ hr {
   filter: blur(1px); 
   width: 100%;     
 }
-
+.un{
+    color: rgba(255,255,255, 0.7);
+    font-size: smaller;
+}

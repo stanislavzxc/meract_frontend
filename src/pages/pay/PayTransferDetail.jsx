@@ -63,7 +63,7 @@ const PayTransferDetail = () => {
                     style={{ cursor: 'pointer' }} 
                 />
                 <div className="name"><h1>Transfer Echo</h1></div>
-                <div style={{ width: '24px' }}></div> {/* Заглушка для центровки */}
+                <div style={{ width: '24px' }}></div> 
             </div>
 
             {/* Recipient Card */}
@@ -71,7 +71,7 @@ const PayTransferDetail = () => {
                 <h3 style={{ color: '#fff', marginBottom: '10px' }}>Recipient</h3>
                 <div className={styles.card}>
                     <div className={styles.rankBadge}>
-                        <img src={card.avatarUrl || userimg} alt="user" className={styles.rankImg} />
+                        <img src={card.avatarUrl || userimg} alt="no avatar" className={styles.rankImg} style={{color:'white',fontSize:'small',}}/>
                     </div>
 
                     <div className={styles.cardInfo}>

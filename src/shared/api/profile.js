@@ -50,7 +50,17 @@ export const profileApi = {
     const response = await api.delete("/user/delete-avatar");
     return response.data;
   },
-  
+  updatePhoto: async (file) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    
+    const response = await api.post("/user/update-avatar", formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
 
 updateInfo: async (name, desc, avatarFile, coverFile, id) => {
     const token = useAuthStore.getState().getToken();

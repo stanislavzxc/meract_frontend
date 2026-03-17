@@ -523,8 +523,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background: rgba(255, 255, 255, 0.05);
   padding: 5px 0px;
+  
 }
 
 .guildimg {
@@ -538,6 +538,7 @@
   padding: 40px 0;      
   color: #888;
   font-family: "Oxanium", sans-serif;
+  text-align: center;
 }
 .savebutton {
   flex: 1;
@@ -611,15 +612,16 @@
 .recruitmentWrapper {
   display: flex;
   justify-content: flex-start;
+  flex-direction: column;
   gap: 20px;
   color: #FFFFFF;
-   background: rgba(255, 255, 255, 0.05); 
+   background: rgba(255, 255, 255, 0.07) !important; 
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   transition: transform 0.2s ease;
   margin: 0;
-  width: 100%;
-  padding: 16px 0px 16px 20px;
+  width: 90%;
+  padding: 16px 20px 16px 20px;
   max-width: 420px;
 }
 
@@ -674,4 +676,116 @@
 
 .checkboxContainer input:checked + .checkmark:after {
   display: block;
+}
+.recruitmentDetails {
+    margin-top: 16px;
+    border-radius: 12px;
+    animation: slideDown 0.3s ease;
+}
+
+.recruitmentItem {
+    margin-bottom: 16px;
+}
+
+.recruitmentItem:last-child {
+    margin-bottom: 0;
+}
+
+.recruitmentLabel {
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: bolder;
+    margin-bottom: 8px;
+}
+
+.datetimeContainer {
+    display: flex;
+    gap: 12px;
+}
+
+.timeInput, .dateInput {
+    flex: 1;
+    padding: 12px;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+}
+
+.timeInput:focus, .dateInput:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.votingTimeContainer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.hoursInput {
+    padding: 12px;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+}
+.inputSuffix {
+    position: absolute;
+    right: 12px;
+    color: #888;
+    font-size: 14px;
+    pointer-events: none; /* Чтобы нельзя было кликнуть на текст */
+}
+.hoursInput:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.hoursLabel {
+    color: #bbb;
+    font-size: 14px;
+}
+
+/* Анимация появления */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.inputWrapper {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.hoursInput {
+    width: 100%;
+    padding: 12px;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+}
+
+.inputSuffix {
+    position: absolute;
+    left: 32px;
+    color: #ffffff;
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.hoursInput:focus {
+    outline: none;
+    border-color: #007bff;
 }

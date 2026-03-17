@@ -37,6 +37,8 @@ const PayTransfer = () => {
         </div>
         <div className={styles.cardcont}>
             <p style={{color:'rgb(173, 173, 173)',}}>Your contacts</p>
+{cards.length > 0 ?
+            <>
                 {cards.map((card, index) => (
                   <div 
                     key={card.id} 
@@ -44,7 +46,7 @@ const PayTransfer = () => {
                     onClick={() => navigate(`/wallet/transfer/${card.partner.id}`)}
         >
                     <div className={styles.rankBadge}>
-                      <img src={card.imageUrl || userimg} alt="rank" className={styles.rankImg} />
+                      <img src={card.imageUrl || userimg} alt="no avatar" className={styles.rankImg} style={{color:'white', fontSize:'small',}}/>
                     </div>
         
                     <div className={styles.cardInfo}>
@@ -63,7 +65,12 @@ const PayTransfer = () => {
                    
                   </div>
                 ))}
-              </div>
+            </>
+            : <p style={{color:'white', margin:'auto', textAlign:'center',}}>No contacts</p> 
+
+}
+
+        </div>
     </div>
    ) 
 }

@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import axios from 'axios';
 import back from '../../images/arrow-left.png';
 import logo from '../../images/discord.png';
-import userimg from '../../images/icon1.png';
+import userimg from '../../images/user.png';
 import changeIcon from '../../images/change.png'; 
 import styles from "./SettingsPage.module.css";
 import close from '../../images/Close.png';
@@ -105,7 +105,7 @@ const PersonalData = () => {
 
     const triggerChange = () => fileInputRef.current.click();
     const handleDelete = async () => {
-        setAvatar(userimg);
+        setAvatar(null);
         await DeleteLogo();
     } 
 
@@ -185,7 +185,10 @@ const PersonalData = () => {
                 <p className={styles.title} style={{fontSize:'18px',}}>Profile photo</p>
                 <div className={styles.parent}>
                     <div className={styles.profile}>
-                        <img src={avatar} alt="avatar" className={styles.logo} />
+                        {avatar 
+                        ?   <img src={avatar} className={styles.logo} />
+                        :   <p style={{color:'white',}}>no avatar</p>
+                        }
                         <div className={styles.btncont}>
                             <button className={styles.active} onClick={triggerChange}>Change</button>
                             <button onClick={handleDelete} style={{ background: '#E74209' }}>Delete</button>

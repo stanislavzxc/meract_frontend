@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import arrowLeft from '../../images/arrow-left.png';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom"; // Добавили useLocation
 import { toast } from "react-toastify";
 
 import api from "../../shared/api/api";
@@ -17,9 +17,15 @@ import add from '../../images/add.png';
 import teamicon from '../../images/icon1.png';
 import points from '../../images/points.png';
 import { actApi } from "../../shared/api/act";
+import { chatApi } from "../../shared/api/chat";
+import { profileApi } from "../../shared/api/profile";
+
 export default function CreateAct() {
   const navigate = useNavigate();
+  const location = useLocation(); // Добавили для получения данных из TeamDetail
   const photoInputRef = useRef(null);
+  const [userId, setUserId] = useState();
+  const [act_id, setActId] = useState();
   
   // Основные состояния формы
   const [name, setName] = useState('');
@@ -42,6 +48,9 @@ export default function CreateAct() {
   const [createdAct, setCreatedAct] = useState(null);
   const [showStream, setShowStream] = useState(false);
 
+  // Состояние для команды
+  const [teamData, setTeamData] = useState(null);
+
   // Модальные окна
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [sequelCoverPreview, setSequelCoverPreview] = useState(null);
@@ -55,16 +64,11 @@ export default function CreateAct() {
 
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
 
-  // Teams data
-  const teams = [
-    {id: 1, img: teamicon, name: 'team1', points: '1000'},
-  ];
-
   // Сторы
   const {
     user,
     isAuthenticated,
-    location,
+    location: authLocation,
     routeDestination,
     routeCoordinates,
     routePoints,
@@ -101,6 +105,15 @@ export default function CreateAct() {
   } = useCreateSequel();
 
   const tasks = createActFormState.tasks;
+
+  // Получаем данные о команде из TeamDetail
+  useEffect(() => {
+    if (location.state?.teamData) {
+      setTeamData(location.state.teamData);
+      // Очищаем state после получения
+      navigate('/create-act', { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
 
   // Обработка фото
   const handlePhotoChange = (e) => {
@@ -149,6 +162,7 @@ export default function CreateAct() {
       spotAgentMethod,
       spotAgentCount,
       biddingTime,
+      teamData, // Сохраняем и данные команды
       timestamp: Date.now(),
     };
     localStorage.setItem("createActFormState", JSON.stringify(formState));
@@ -172,6 +186,7 @@ export default function CreateAct() {
           setSpotAgentMethod(formState.spotAgentMethod || SelectionMethods.VOTING);
           setSpotAgentCount(formState.spotAgentCount || 0);
           setBiddingTime(formState.biddingTime || 5);
+          setTeamData(formState.teamData || null); // Восстанавливаем данные команды
         }
       }
     } catch (error) {
@@ -191,52 +206,60 @@ export default function CreateAct() {
   });
 
   const handleCreateAct = async () => {
-  if (!name.trim()) {
-    toast.error("Please enter a name");
-    return;
-  }
-
-
-
-  if (!photoFile) {
-    toast.error("Please select a photo");
-    return;
-  }
-
-  setIsSubmitting(true);
-
-  try {
-    console.log("Sending data:", { name, description, photoFile });
-    
-    const result = await actApi.createAct(name, description, photoFile);
-    console.log("Server response:", result);
-    
-    if (result) {
-      localStorage.removeItem("createActFormState");
-      
-      clearSelectedSequel();
-      clearSelectedIntro();
-      clearSelectedOutro();
-      clearSelectedMusic();
-
-      // Проверяем структуру ответа
-      const newActId = result.actId || result.id || result.data?.id;
-      console.log("Act created with ID:", newActId);
-      navigate('/acts');
-      
-
-      
-
-      toast.success("Act created successfully!");
+    if (!name.trim()) {
+      toast.error("Please enter a name");
+      return;
     }
-  } catch (error) {
-    console.error("Full error:", error);
-    console.error("Error response:", error.response?.data);
-    toast.error(error.response?.data?.message || "Failed to create act");
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+
+    if (!photoFile) {
+      toast.error("Please select a photo");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      console.log("Sending data:", { name, description, photoFile, teamData });
+      
+      // Создаем акт
+      const result = await actApi.createAct(name, description, photoFile);
+      console.log("Server response:", result);
+      
+      if (result) {
+        const newActId = result.actId || result.id || result.data?.id;
+        console.log("Act created with ID:", newActId);
+        
+        if (newActId) {
+          // Создаем чат
+          const profileData = await profileApi.getProfile();
+          await chatApi.createChatGroup(name, [profileData.id], photoFile, newActId);
+          
+          // Здесь можно добавить логику для сохранения команды
+          if (teamData) {
+            console.log("Saving team data:", teamData);
+            // TODO: добавить API для сохранения команды
+          }
+        }
+
+        // Очищаем форму
+        localStorage.removeItem("createActFormState");
+        
+        clearSelectedSequel();
+        clearSelectedIntro();
+        clearSelectedOutro();
+        clearSelectedMusic();
+
+        toast.success("Act created successfully!");
+        navigate('/acts');
+      }
+    } catch (error) {
+      console.error("Full error:", error);
+      console.error("Error response:", error.response?.data);
+      toast.error(error.response?.data?.message || "Failed to create act");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Сохранение задач
   const saveLocalTasksToServer = async (actId) => {
@@ -322,7 +345,7 @@ export default function CreateAct() {
         actId={createdAct.id}
         actTitle={createdAct.title}
         onStopStream={handleStopStream}
-        startLocation={location}
+        startLocation={authLocation}
         destinationLocation={routeDestination}
         routeCoordinates={routeCoordinates}
       />
@@ -362,7 +385,7 @@ export default function CreateAct() {
       </div>
 
       {/* Photo Upload */}
-      <h4 className={styles.elsetitle}>Act Photo</h4>
+      <h4 className={styles.elsetitle}>Act Galery</h4>
       {photoPreview ? (
         <div className={styles.paragraph}>
           <div className={styles.guildImgContainer}>
@@ -381,9 +404,9 @@ export default function CreateAct() {
           <div 
             className={styles.guildImgContainer} 
             onClick={() => photoInputRef.current?.click()}
-            style={{ maxHeight: '100px', cursor: 'pointer' }}
+            style={{ maxHeight: '70px', cursor: 'pointer' }}
           >
-            <div className={styles.emptyPlaceholder}>
+            <div className={styles.emptyPlaceholder} style={{display:'flex', gap:'4px'}}>
               <p>Click to upload photo</p>
               <img src={add} alt="Add icon" />
             </div>
@@ -405,35 +428,43 @@ export default function CreateAct() {
           Specify possible spot agents for which viewers will vote.
         </p>
         <div className={styles.teamsGrid}> 
-          {teams.map((team) => (
-            <div className={styles.paragraph} key={team.id}>
+          {teamData ? (
+            <div className={styles.paragraph}>
               <div className={styles.teamwrap}>
                 <div className={styles.guildImgContainer} style={{border:'none'}}>
                   <div className={styles.emptyPlaceholder}>
-                    <img src={team.img} alt="team" />
-                    <p>Team {team.id}</p>
+                    <img 
+                      src={teamData.heroAvatar || teamicon} 
+                      alt={teamData.name}
+                      style={{
+                        width: '60px',
+                        height: '60px',
+                        borderRadius: '50%',
+                        objectFit: 'cover'
+                      }}
+                    />
+                    <p style={{marginTop: '8px', fontWeight: 'bold'}}>{teamData.name}</p>
+                    <p style={{fontSize: '12px', color: '#888'}}>
+                      {teamData.membersCount} members
+                    </p>
                   </div>
                 </div>
-                <h4 className={styles.elsetitle}>{team.name}</h4>
-                <div className={styles.pointsWrapper}>
-                  <img src={points} alt="points" />
-                  <p style={{color:'white'}}>{team.points}</p>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.paragraph}>
+              <div 
+                className={styles.guildImgContainer} 
+                onClick={() => navigate('/team')} 
+                style={{height:'260px', padding:'10px 0px', cursor: 'pointer'}}
+              >
+                <div className={styles.emptyPlaceholder}>
+                  <img src={team} alt="Add icon" />
+                  <p>Add team</p>
                 </div>
               </div>
             </div>
-          ))}
-          <div className={styles.paragraph}>
-            <div 
-              className={styles.guildImgContainer} 
-              onClick={() => navigate('/team')} 
-              style={{height:'260px', padding:'10px 0px', cursor: 'pointer'}}
-            >
-              <div className={styles.emptyPlaceholder}>
-                <img src={team} alt="Add icon" />
-                <p>Add team</p>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 

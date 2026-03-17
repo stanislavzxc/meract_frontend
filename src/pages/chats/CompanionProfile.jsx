@@ -8,6 +8,7 @@ import ActCard from '../acts/components/ActCard';
 import { profileApi } from '../../shared/api/profile';
 import { chatApi } from '../../shared/api/chat';
 import { useEffect, useState } from 'react';
+import { achievementApi } from '../../shared/api/achievementApi';
 
 const CompanionProfile = () => {
     const navigate = useNavigate();
@@ -18,26 +19,21 @@ const CompanionProfile = () => {
     const [images, setImages] = useState([]);
     const [videos, setVideos] = useState([]);
     const [nav, setNav] = useState(2);
-
+    const [achive, setAchieve] = useState([]);
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                
-                // Загружаем данные пользователя и сообщения чата параллельно
-                const [userResponse, chatResponse] = await Promise.all([
+                const [userResponse, chatResponse, achievedata] = await Promise.all([
                     profileApi.getUserById(id),
-                    chatApi.getMessages(id)
+                    chatApi.getMessages(id),
+                    achievementApi.getUserAchievements(id),
                 ]);
 
-                console.log('User data:', userResponse);
-                console.log('Chat data:', chatResponse);
-
-                // Данные пользователя
                 const actsArray = userResponse.actIds ? userResponse.actIds.map(actId => ({ id: actId })) : [];
                 setUser(userResponse);
+                setAchieve(achievedata);
                 setActs(actsArray);
-
                 // Медиа из чата
                 if (chatResponse) {
                     setImages(chatResponse.images || []);
@@ -72,8 +68,19 @@ const CompanionProfile = () => {
         });
     };
 
-    const sendMessage = () => console.log('a');
-    const sendEcho = () => console.log('a');
+     const sendMessage = async() => {
+        const data = await chatApi.getAll();
+        const chatuser = data.find(user => user.partner.id == id);
+        if(chatuser){
+            navigate(`/chat/${chatuser.id}/${data.id}`)
+        }else{
+            const chatdata = await chatApi.createChat(id);
+            navigate(`/chat/${chatdata.id}/${id}`)
+        }
+    }
+    const sendEcho = async() => {
+        navigate(`/wallet/transfer/${id}`)
+    }
 
     const isOnline = userData.onlineStatus?.toLowerCase() === 'online';
 
@@ -106,7 +113,7 @@ const CompanionProfile = () => {
             <div className={styles.parent}>
                 <div className={styles.profile}>
                     <img src={userData.avatarUrl || logo} alt="avatar" className={styles.logo} />
-                    <p className={styles.title}>{userData.fullName || 'No name'}</p>
+                    <p className={styles.title} style={{fontWeight:'600',fontSize:'16px', margin:'0px',}}>{userData.fullName || 'No name'}</p>
                     {isOnline ? (
                         <p className={styles.subtitle}>Online</p>
                     ) : userData.onlineStatus ? (
@@ -124,17 +131,40 @@ const CompanionProfile = () => {
             
             <div className={styles.cardwrapmain}>
                 <div className={styles.cardcont}>
-                    <div className={styles.card} onClick={() => navigate(`/rank-achive/${id}`)}>
+                    <div className={styles.card} onClick={() => {
+                                            if(achive.length > 0) navigate(`/rank-achive/${id}`)
+                                
+                                        }}>
+                                            <div className={styles.cardInfo}>
+                                                <p className={styles.userName}>Achievements</p>
+                                                <p className={styles.subtitle}>{achive.length} Achievements</p>
+                                            </div>
+                                            {achive.length > 0 &&
+                                            <svg className={styles.arrowIcon} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                                                <polyline points="9 18 15 12 9 6"></polyline>
+                                            </svg>
+                                            }
+                    
+                                        </div>
+                </div>
+                <div className={styles.cardcont}>
+                    <div className={styles.card}>
                         <div className={styles.cardInfo}>
-                            <p className={styles.userName}>Achievements</p>
-                            <p className={styles.subtitle}>0 Achievements</p>
+                            <p className={styles.subtitle}>Username</p>
+                            <p className={styles.userName}>{userData.login || 'no login'}</p>
                         </div>
-                        <svg className={styles.arrowIcon} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
+                        {userData.login &&
+                        <img 
+                            className={styles.arrowIcon} 
+                            src={copy}
+                            alt="copy"
+                            style={{ opacity: '1', cursor: 'pointer' }}
+                            onClick={copyText}
+                        />
+                        }
+
                     </div>
                 </div>
-                
                 <div className={styles.cardwrap}>
                     <div className={styles.card}>
                         <div className={styles.cardInfo}>
@@ -170,21 +200,7 @@ const CompanionProfile = () => {
                     </div>
                 </div>
                 
-                <div className={styles.cardcont}>
-                    <div className={styles.card}>
-                        <div className={styles.cardInfo}>
-                            <p className={styles.subtitle}>Username</p>
-                            <p className={styles.userName}>{userData.login}</p>
-                        </div>
-                        <img 
-                            className={styles.arrowIcon} 
-                            src={copy}
-                            alt="copy"
-                            style={{ opacity: '1', cursor: 'pointer' }}
-                            onClick={copyText}
-                        />
-                    </div>
-                </div>
+                
                 
                 <div>
                     <div className={styles.btncont}>

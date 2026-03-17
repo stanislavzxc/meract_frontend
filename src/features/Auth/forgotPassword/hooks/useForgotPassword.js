@@ -10,7 +10,7 @@ export function useForgotPassword() {
     setLoading(true);
     setError("");
     try {
-      await api.post("/auth/forgot-password", { email });
+      await api.post(`/auth/forgot-password?email=${email}`);
       setLoading(false);
       return true;
     } catch (e) {

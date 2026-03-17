@@ -59,6 +59,9 @@ import ActDetail from "../../pages/acts/ActsDetail";
 import TeamDetail from "../../pages/createAct/TeamDetail";
 import MyActsPage from "../../pages/acts/MyActs";
 import CompanionProfile from "../../pages/chats/CompanionProfile";
+import MyAchieve from "../../pages/myAchieve/MyAchieve";
+import ChatMulti from "../../pages/chats/ChatMulti";
+import AddMember from "../../pages/createAct/AddMember";
 const HomeRedirect = () => {
   const [searchParams] = useSearchParams();
   const { isAuthenticated, login } = useAuthStore();
@@ -251,6 +254,11 @@ export const router = createBrowserRouter([
     element: <ChatSingle />,
   },
   {
+    path: "group/:id/",
+    element: <ChatMulti />,
+  },
+  
+  {
     path: "wallet",
     element: <PayPage />,
   },
@@ -321,6 +329,21 @@ export const router = createBrowserRouter([
         <CompanionProfile />
     ),
   },
+
+  {
+    path: "/my-achievements",
+    element: (
+        <MyAchieve />
+    ),
+  },  
+  {
+    path: "/add-member/:type",
+    element: (
+        <AddMember />
+    ),
+  },  
+
+
   {
     path: "*",
     element: <NotFoundPage />,

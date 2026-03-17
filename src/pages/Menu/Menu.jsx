@@ -59,14 +59,14 @@ loadAllData();
                             style={{ cursor: 'pointer' }} 
                         />
                     </div>
-                        <div className={styles.card}>
+                        <div className={styles.card} onClick={() => navigate('/settings/profile')}>
                                 <div className={styles.rankBadge}>
-                                  <img src={userimg || avatar} alt="rank" className={styles.rankImg} />
+                                  <img src={userimg || avatar} alt="" className={styles.rankImg} />
                                 </div>
                     
                                 <div className={styles.cardInfo}>
                                   <p className={styles.userName}>{fullname}</p>
-                                  <p className={styles.userName}>{username}</p>
+                                  <p className={styles.un}>{username}</p>
                                  
                                 </div>
                     
@@ -100,7 +100,7 @@ loadAllData();
                         <div className={styles.item}
                         onClick={() => {
                             onClose();
-                            navigate('/rank-achive/1');
+                            navigate('/my-achievements');
                         }
                         }
                         ><img src={medal} /> Achievements</div>

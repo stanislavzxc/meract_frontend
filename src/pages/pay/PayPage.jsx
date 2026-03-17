@@ -81,8 +81,8 @@ const PayPage = () => {
                 <p style={{color:'white', fontWeight:'500', fontSize:'21px', marginBottom: '15px'}}>
                     Transaction history
                 </p>
-
-                {/* 2. Рендеринг групп по датам */}
+                {cards.length > 0 ?
+                <>
                 {Object.keys(groupedCards).map((date) => (
                     <div key={date} className={styles.dateGroup}>
                         <p style={{ color: '#bbbbbb', fontSize: '14px', margin: '10px 0' }}>{date}</p>
@@ -122,6 +122,10 @@ const PayPage = () => {
                         ))}
                     </div>
                 ))}
+                </>
+                : <p style={{color:'white', margin:'auto', textAlign:'center',}}>No transactions</p>  
+                }
+
             </div>
         </div> 
     );

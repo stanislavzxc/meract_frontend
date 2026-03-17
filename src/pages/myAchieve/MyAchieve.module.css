@@ -489,16 +489,14 @@ input {
 }
 .profile{
   display: flex;
+  flex-direction: column;
   gap: 5px;
   text-align: center;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
 }
 .logo{
   width: 120px;
   height: 120px;
-  border-radius: 12px;
 }
 .parent{
   display: flex;
@@ -527,7 +525,7 @@ input {
   display: flex;
   flex-direction: column;
   margin-top: 20px;
-  gap: 10px;
+  gap: 20px;
 }
 .languageBox{
   display: flex;
@@ -554,132 +552,168 @@ input {
   display: flex;
 flex-direction: column;
    padding: 16px;
-  background: rgba(255, 255, 255, 0.05); 
+  background: rgba(255, 255, 255, 0.05); /* Стандартный фон для всех (4+) */
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   gap: 15px;
   transition: transform 0.2s ease;
 }
-.modalOverlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.6); 
-    backdrop-filter: blur(10px);   
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
+.mediaGrid {
+  margin-top: 20px;
 }
 
-.modalContent {
-    background: #1c1c1e; 
-    width: 80%;
-    max-width: 350px;
-    padding: 20px 15px;
-    border-radius: 24px;
-    border: 1px solid #333;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-    gap: 10px;
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 15px;
 }
 
-.modalTitle {
-    color: white;
-    font-size: 18px;
-    margin: 0;
-    text-align: flex-start;
+.mediaItem {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.2s ease;
 }
 
-.modalInput {
-    background: #2c2c2e;
-    border: 1px solid #444;
-    border-radius: 12px;
-    padding: 12px;
-    color: white;
-    font-size: 16px;
-    outline: none;
+.mediaItem:hover {
+  transform: scale(1.05);
+  border-color: #0093FF;
 }
 
-.modalButtons {
-    display: flex;
-    gap: 10px;
+.mediaPreview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.cancelBtn {
-    border: none;
-    color: #888;
-    cursor: pointer;
-    padding: 10px;
+.mediaDate {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 8px;
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+  color: white;
+  font-size: 12px;
+  text-align: right;
 }
 
-.changeLink {
-    color: #0093FF;
-    cursor: pointer;
-    font-size: 14px;
+.noResults {
+  color: white;
+  text-align: center;
+  margin: 40px 0;
+  opacity: 0.5;
+}
+.emptyMessage{
+  color: white;
+  margin: auto;
+}
+/* MyAchieve.module.css */
+
+.dropZone {
+  transition: all 0.3s ease;
+  padding: 8px;
+  min-height: 100px;
 }
 
-.pointer {
-    cursor: pointer;
+.dropZoneActive {
+  background-color: rgba(58, 186, 254, 0.1);
+  border: 2px dashed #3abafe !important;
 }
 
-.sectionMargin {
-    margin-top: 20px;
+.dropZoneCanDrop {
+  cursor: copy;
 }
 
-.backBtn {
-    cursor: pointer;
-    width: 24px;
-    height: 24px;
-}
-.modalContent, 
-.modalInput {
-    box-sizing: border-box; 
-}
-.switch {
-    width: 42px;
-    height: 24px;
-    background-color: #333; /* Цвет выключенного состояния */
-    border-radius: 50px;
-    position: relative;
-    transition: background-color 0.3s ease;
-    flex-shrink: 0;
-    cursor: pointer;
+.dropIndicator {
+  text-align: center;
+  padding: 10px;
+  color: #3abafe;
+  font-size: 14px;
+  font-weight: 500;
 }
 
-.switchOn {
-    background-color: #009DFF33; /* Цвет включенного состояния */
+.emptyDropZone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  border: 2px dashed #e0e0e0;
+  border-radius: 8px;
+  background-color: #f9f9f9;
 }
 
-.toggle {
-    width: 18px;
-    height: 18px;
-    background-color: #FFFFFF4D;
-    border-radius: 50%;
-    position: absolute;
-    top: 3px;
-    left: 3px;
-    transition: transform 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+.emptyDropZone p {
+  color: #999;
+  font-size: 14px;
+  margin: 0;
 }
 
-.switchOn .toggle {
-    background-color: #0093FF;
-    transform: translateX(18px); 
+/* Стили для перетаскиваемых элементов */
+.members {
+  user-select: none;
+  -webkit-user-select: none;
+  margin-bottom: 8px;
 }
-.savebutton {
+
+.members:active {
+  cursor: grabbing !important;
+}
+
+.bestAchievement {
+  border: 2px solid gold;
+  background-color: #fff9e6;
+}
+
+.selected {
+  transform: translateY(-8px);
+  border: 2px solid #3abafe !important;
+  box-shadow: 0 4px 12px rgba(58, 186, 254, 0.3);
+}
+
+.selectedIndicator {
+  position: absolute;
+  top: -10px;
+  right: 10px;
+  background-color: #3abafe;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.swapInstructions {
   position: fixed;
   bottom: 20px;
-  left: 20px;
-  right: 20px;
-  z-index: 100;
-  max-width: calc(1200px - 40px);
-  margin: 0 auto;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-size: 14px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.savebutton button {
-  width: 100%;
+.swapInstructions p {
+  margin: 0;
+}
+
+.swapInstructions p:first-child {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.addachieve{
+  color: #a8a8a8;
+  text-align: center;
+  padding: 20px;
+  border: 1px dashed gray;
+  border-radius: 12px;
 }

@@ -23,6 +23,7 @@ import back from '../../../images/arrow-left.png';
 import tasks_image from '../../../images/tasks.png';
 import messages from '../../../images/messages.png';
 import geo from '../../../images/geo.png';
+import { chatApi } from "../../../shared/api/chat";
 
 // Function to extract data from JWT token
 const parseJWT = (token) => {
@@ -61,6 +62,7 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
   const [startLocation, setStartLocation] = useState(null);
   const [destinationLocation, setDestinationLocation] = useState(null);
 
+  const [chatid, setChatId] = useState();
   // Состояния для записей
   const [recordings, setRecordings] = useState([]);
   const [loadingRecordings, setLoadingRecordings] = useState(false);
@@ -74,6 +76,7 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
   const [localAudioTrack, setLocalAudioTrack] = useState(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isStreamActive, setIsStreamActive] = useState(false);
+  const [isStartingStream, setIsStartingStream] = useState(false);
 
   // WebSocket состояние
   const [wsConnected, setWsConnected] = useState(false);
@@ -319,131 +322,84 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
     }
   }, []);
 
-  // Connect to Agora based on user role
-  useEffect(() => {
-    const connectToAgora = async () => {
-      if (isConnectingRef.current) {
-        console.log("Already connecting, skipping...");
+  // Функция для начала стрима (только для стримера)
+  const startStream = async () => {
+    if (!isStreamer) {
+      toast.error("Only streamer can start the stream");
+      return;
+    }
+
+    if (isStartingStream || isStreamActive) {
+      return;
+    }
+
+    setIsStartingStream(true);
+    setError(null);
+
+    try {
+      console.log(`🎥 Starting stream for ${isStreamer ? 'publisher' : 'subscriber'}:`, actualChannelName);
+      console.log("🎥 User ID:", userIdNum);
+      const chats = await chatApi.getAll();
+      const currentchat = chats.find(c => c.actId == actId) 
+      setChatId(currentchat.id);
+      const role = 'publisher';
+      const response = await api.get(
+        `/act/token/${actualChannelName}/${role}/uid?uid=0&expiry=3600`
+      );
+      
+      const token = response.data.token;
+      console.log("🎥 Token received:", token ? "✅" : "❌");
+
+      if (!token) {
+        throw new Error("No token received");
+      }
+
+      console.log("🎥 Creating Agora client...");
+      const client = AgoraRTC.createClient({ 
+        mode: "live", 
+        codec: "vp8" 
+      });
+      
+      // Устанавливаем роль host для стримера
+      await client.setClientRole("host");
+      clientRef.current = client;
+
+      // Обработчики событий
+      client.on("user-published", async (user, mediaType) => {
+        console.log("🎥 User published:", user.uid, mediaType);
+        
+        // Стример не подписывается на других
+        console.log("Streamer ignoring other publishers");
         return;
-      }
+      });
 
-      // Проверяем статус стрима
-      if (!actualStreamData || actualStreamData.status !== 'ONLINE') {
-        console.log("Stream is not ONLINE, skipping connection");
-        return;
-      }
+      client.on("user-unpublished", (user) => {
+        console.log("🎥 User unpublished:", user.uid);
+        setRemoteUsers((prev) => prev.filter((u) => u.uid !== user.uid));
+      });
 
-      // Если это стример и стрим уже активен, не подключаемся снова
-      if (isStreamer && isStreamActive) {
-        console.log("Streamer already streaming, skipping...");
-        return;
-      }
+      console.log("🎥 Joining channel with App ID:", import.meta.env.VITE_AGORA_APP_ID);
+      
+      await client.join(
+        import.meta.env.VITE_AGORA_APP_ID,
+        actualChannelName,
+        token,
+        userIdNum
+      );
 
-      isConnectingRef.current = true;
-      setError(null);
+      console.log("🎥 Successfully joined channel!");
+      
+      // Начинаем публикацию
+      await startPublishing(client);
 
-      try {
-        console.log(`🔴 Getting Agora token for ${isStreamer ? 'publisher' : 'subscriber'}:`, actualChannelName);
-        console.log("🔴 User ID:", userIdNum);
-
-        const role = isStreamer ? 'publisher' : 'subscriber';
-        const response = await api.get(
-          // `/act/token/${actualChannelName}/${role}/uid?uid=${userIdNum}&expiry=3600`
-          `/act/token/${actualChannelName}/${role}/uid?uid=0&expiry=3600`
-        
-        );
-        
-        const token = response.data.token;
-        console.log("🔴 Token received:", token ? "✅" : "❌");
-        console.log("🔴🔴🔴", isPublishing, streamData.userId, currentUserId, streamData.userId==currentUserId)
-        if (!token) {
-          throw new Error("No token received");
-        }
-
-        console.log("🔴 Creating Agora client...");
-        const client = AgoraRTC.createClient({ 
-          mode: "live", 
-          codec: "vp8" 
-        });
-        
-        // Устанавливаем роль в зависимости от типа пользователя
-        await client.setClientRole(isStreamer ? "host" : "audience");
-        clientRef.current = client;
-
-        // Обработчики событий
-        client.on("user-published", async (user, mediaType) => {
-          console.log("🔴 User published:", 0, mediaType);
-          
-          // Стример не подписывается на других (если только это не нужно для модерации)
-          if (isStreamer) {
-            console.log("Streamer ignoring other publishers");
-            return;
-          }
-          
-          try {
-            await client.subscribe(user, mediaType);
-            console.log("🔴 Subscribed to", mediaType);
-
-            if (mediaType === "video") {
-              if (remoteVideoRef.current) {
-                user.videoTrack?.play(remoteVideoRef.current);
-                console.log("🔴 Playing video");
-              }
-            }
-            
-            if (mediaType === "audio") {
-              user.audioTrack?.play();
-              console.log("🔴 Playing audio");
-            }
-
-            setRemoteUsers((prev) => [
-              ...prev.filter((u) => u.uid !== user.uid),
-              user,
-            ]);
-          } catch (err) {
-            console.error("🔴 Error subscribing:", err);
-          }
-        });
-
-        client.on("user-unpublished", (user) => {
-          console.log("🔴 User unpublished:", user.uid);
-          setRemoteUsers((prev) => prev.filter((u) => u.uid !== user.uid));
-        });
-
-        console.log("🔴 Joining channel with App ID:", import.meta.env.VITE_AGORA_APP_ID);
-        
-        await client.join(
-          import.meta.env.VITE_AGORA_APP_ID,
-          actualChannelName,
-          token,
-          userIdNum
-        );
-
-        console.log("🔴 Successfully joined channel!");
-        setIsConnected(true);
-        streamStartTimeRef.current = Date.now();
-
-        // Если это стример - начинаем публикацию
-        if (isStreamer) {
-          await startPublishing(client);
-        }
-
-      } catch (err) {
-        console.error("🔴 Connection error:", err);
-        setError(err.response?.data?.message || err.message);
-        setIsConnected(false);
-      } finally {
-        isConnectingRef.current = false;
-      }
-    };
-
-    connectToAgora();
-
-    return () => {
-      console.log("🔴 Cleaning up connection...");
-      cleanupAgora();
-    };
-  }, [actualStreamData?.status, actualChannelName, userIdNum, isStreamer]);
+    } catch (err) {
+      console.error("🎥 Error starting stream:", err);
+      setError(err.response?.data?.message || err.message);
+      toast.error("Failed to start stream: " + (err.response?.data?.message || err.message));
+    } finally {
+      setIsStartingStream(false);
+    }
+  };
 
   // Функция для начала публикации стрима (для стримера)
   const startPublishing = async (client) => {
@@ -467,6 +423,8 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
       
       setIsPublishing(true);
       setIsStreamActive(true);
+      setIsConnected(true);
+      streamStartTimeRef.current = Date.now();
       
       console.log("🎥 Stream published successfully!");
       
@@ -478,10 +436,13 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
         socketRef.current.emit('streamStarted', { actId: parseInt(actId) });
       }
       
+      toast.success("Stream started successfully!");
+      
     } catch (err) {
       console.error("Error publishing stream:", err);
       setError("Failed to start streaming: " + err.message);
       toast.error("Failed to start streaming");
+      throw err;
     }
   };
 
@@ -506,6 +467,7 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
       setIsPublishing(false);
       setIsStreamActive(false);
       setIsConnected(false);
+      streamStartTimeRef.current = null;
       
       console.log("🛑 Stream stopped successfully");
       
@@ -524,6 +486,109 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
       toast.error("Failed to stop stream");
     }
   };
+
+  // Подключение к стриму для зрителей
+  useEffect(() => {
+    const connectAsViewer = async () => {
+      // Только для зрителей и только если стрим онлайн
+      if (isStreamer || !actualStreamData || actualStreamData.status !== 'ONLINE' || isConnectingRef.current) {
+        return;
+      }
+
+      isConnectingRef.current = true;
+      setError(null);
+
+      try {
+        console.log("👀 Connecting as viewer to channel:", actualChannelName);
+        console.log("👀 User ID:", userIdNum);
+
+        const role = 'subscriber';
+        const response = await api.get(
+          `/act/token/${actualChannelName}/${role}/uid?uid=0&expiry=3600`
+        );
+        
+        const token = response.data.token;
+        console.log("👀 Token received:", token ? "✅" : "❌");
+
+        if (!token) {
+          throw new Error("No token received");
+        }
+
+        console.log("👀 Creating Agora client...");
+        const client = AgoraRTC.createClient({ 
+          mode: "live", 
+          codec: "vp8" 
+        });
+        
+        // Устанавливаем роль audience для зрителя
+        await client.setClientRole("audience");
+        clientRef.current = client;
+
+        // Обработчики событий
+        client.on("user-published", async (user, mediaType) => {
+          console.log("👀 User published:", user.uid, mediaType);
+          
+          try {
+            await client.subscribe(user, mediaType);
+            console.log("👀 Subscribed to", mediaType);
+
+            if (mediaType === "video") {
+              if (remoteVideoRef.current) {
+                user.videoTrack?.play(remoteVideoRef.current);
+                console.log("👀 Playing video");
+              }
+            }
+            
+            if (mediaType === "audio") {
+              user.audioTrack?.play();
+              console.log("👀 Playing audio");
+            }
+
+            setRemoteUsers((prev) => [
+              ...prev.filter((u) => u.uid !== user.uid),
+              user,
+            ]);
+          } catch (err) {
+            console.error("👀 Error subscribing:", err);
+          }
+        });
+
+        client.on("user-unpublished", (user) => {
+          console.log("👀 User unpublished:", user.uid);
+          setRemoteUsers((prev) => prev.filter((u) => u.uid !== user.uid));
+        });
+
+        console.log("👀 Joining channel with App ID:", import.meta.env.VITE_AGORA_APP_ID);
+        
+        await client.join(
+          import.meta.env.VITE_AGORA_APP_ID,
+          actualChannelName,
+          token,
+          userIdNum
+        );
+
+        console.log("👀 Successfully joined channel as viewer!");
+        setIsConnected(true);
+        streamStartTimeRef.current = Date.now();
+
+      } catch (err) {
+        console.error("👀 Connection error:", err);
+        setError(err.response?.data?.message || err.message);
+        setIsConnected(false);
+      } finally {
+        isConnectingRef.current = false;
+      }
+    };
+
+    connectAsViewer();
+
+    return () => {
+      if (!isStreamer) {
+        console.log("👀 Cleaning up viewer connection...");
+        cleanupAgora();
+      }
+    };
+  }, [actualStreamData?.status, actualChannelName, userIdNum, isStreamer]);
 
   // Очистка Agora соединения
   const cleanupAgora = () => {
@@ -757,28 +822,34 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
         {!isStreamer && <span>Publishers: {remoteUsers.length}</span>}
         {isStreamer && <span>Streaming: {isPublishing ? '🔴 LIVE' : '⏸️ STOPPED'}</span>}
       </div> */}
-
-      {actualStreamData?.status === 'ONLINE' || (isStreamer && isPublishing) ? (
+       {/* Кнопка start stream - показываем только стримеру и только если стрим еще не начался */}
+{isStreamer && actualStreamData?.status == 'ONLINE' && !isPublishing && (
+  <div className={styles.startstream}>
+    <button 
+      className={styles.startStreamButton}
+      onClick={startStream}
+      disabled={isStartingStream}
+    >
+      {isStartingStream ? 'Starting...' : 'Start stream'}
+    </button>
+  </div>
+)}
+      {actualStreamData?.status === 'ONLINE' || (isStreamer && (isPublishing || actualStreamData?.status === 'ONLINE')) ? (
         <>
+       
           <div className={styles.header}>
             <div className={styles.header_cont}>
-              <img src={back} alt="Back" onClick={handleClose} />
+              <img src={back} alt="Back" 
+              // onClick={handleClose} 
+              onClick={() => navigate(`/acts/${actId}`)}
+             
+              />
               <div className={styles.online}>
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                   <circle cx="10" cy="10" r="5" fill="white" />
                 </svg>
                 <p className={styles.live}>LIVE</p>
               </div>
-              
-              {/* Кнопка остановки стрима для стримера */}
-              {/* {isStreamer && isPublishing && (
-                <button 
-                  className={styles.stopStreamButton}
-                  onClick={stopStreaming}
-                >
-                  🛑 Stop Stream
-                </button>
-              )} */}
             </div>
 
             {(streamData?.navigator ||
@@ -827,7 +898,7 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
               />
             )}
             
-            {!isConnected && !error && (
+            {!isConnected && !error && !isStreamer && (
               <div className={styles.connectingOverlay}>
                 <p>Connecting to stream...</p>
               </div>
@@ -858,7 +929,7 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
               </div>
             )}
           </div>
-
+          {(isPublishing || isStreamActive) && (
           <div className={styles.chatContainer}>
             <div className={styles.chatActions}>
               <button
@@ -873,7 +944,9 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
               >
                 <img src={tasks_image} alt="Tasks" />
               </button>
-              <button className={styles.actionButton}>
+              <button className={styles.actionButton}
+              onClick={() => navigate(`/group/${chatid}`)}
+              >
                 <img src={messages} alt="Chat" />
               </button>
               
@@ -893,9 +966,19 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
                     )}
                   </button>
                 )}
+              
+              {/* Кнопка остановки стрима для стримера */}
+              {/* {isStreamer && isPublishing && (
+                <button 
+                  className={styles.stopStreamButton}
+                  onClick={stopStreaming}
+                >
+                  🛑 Stop
+                </button>
+              )} */}
             </div>
           </div>
-
+          )}
           {/* Блок записей (доступен всем) */}
           {!loadingRecordings && recordings.length > 0 && (
             <div className={styles.recordingsContainer}>
@@ -1141,14 +1224,12 @@ const StreamViewer = ({ channelName, streamData, id, onClose }) => {
             </div>
           </div>
           <div className={styles.waitingContainer}>
-            <h2 style={{color:'white', textAlign:'center'}}>
-              {isStreamer ? (
-                "Start your stream by going ONLINE"
-              ) : (
+            <h2 style={{color:'white', textAlign:'center', position:'relative', zIndex:'9999',}}>
+              {
                 actualStreamData?.liveIn ? 
                   `Stream starts in ${actualStreamData.liveIn}` : 
                    "Stream will start soon"
-              )}
+              }
             </h2>
           </div>
         </>

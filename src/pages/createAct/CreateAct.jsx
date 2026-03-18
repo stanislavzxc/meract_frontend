@@ -1,12 +1,13 @@
+// CreateAct.jsx (исправленный)
 import { useCallback, useEffect, useRef, useState } from "react";
 import arrowLeft from '../../images/arrow-left.png';
-import { useNavigate, useLocation } from "react-router-dom"; // Добавили useLocation
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
-
 import api from "../../shared/api/api";
 import { useActsStore } from "../../shared/stores/actsStore";
 import { useAuthStore } from "../../shared/stores/authStore";
 import { useSequelStore } from "../../shared/stores/sequelStore";
+import useTeamStore from "../../shared/stores/teamStore";
 import { ActFormat, ActType, SelectionMethods } from "../../shared/types/act";
 import styles from "./CreateAct.module.css";
 import StreamHost from "./components/StreamHost";
@@ -22,7 +23,7 @@ import { profileApi } from "../../shared/api/profile";
 
 export default function CreateAct() {
   const navigate = useNavigate();
-  const location = useLocation(); // Добавили для получения данных из TeamDetail
+  const location = useLocation();
   const photoInputRef = useRef(null);
   const [userId, setUserId] = useState();
   const [act_id, setActId] = useState();
@@ -47,9 +48,6 @@ export default function CreateAct() {
   const [isAnimating, setIsAnimating] = useState(false);
   const [createdAct, setCreatedAct] = useState(null);
   const [showStream, setShowStream] = useState(false);
-
-  // Состояние для команды
-  const [teamData, setTeamData] = useState(null);
 
   // Модальные окна
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -98,6 +96,10 @@ export default function CreateAct() {
     clearSelectedMusic,
   } = useSequelStore();
 
+  // Team Store
+  const teamStore = useTeamStore();
+  const teams = teamStore.teams;
+
   const { createAct } = useCreateAct();
   const {
     createSequel,
@@ -106,14 +108,30 @@ export default function CreateAct() {
 
   const tasks = createActFormState.tasks;
 
-  // Получаем данные о команде из TeamDetail
-  useEffect(() => {
-    if (location.state?.teamData) {
-      setTeamData(location.state.teamData);
-      // Очищаем state после получения
-      navigate('/create-act', { replace: true, state: {} });
+  // Функция для подсчета points команды
+  const calculateTeamPoints = (team) => {
+    let total = 0;
+    
+    if (team.heroes && team.heroes.length > 0) {
+      team.heroes.forEach(hero => {
+        total += Number(hero.points) || 0;
+      });
     }
-  }, [location.state, navigate]);
+    
+    if (team.navigators && team.navigators.length > 0) {
+      team.navigators.forEach(navigator => {
+        total += Number(navigator.points) || 0;
+      });
+    }
+    
+    if (team.agents && team.agents.length > 0) {
+      team.agents.forEach(agent => {
+        total += Number(agent.points) || 0;
+      });
+    }
+    
+    return total;
+  };
 
   // Обработка фото
   const handlePhotoChange = (e) => {
@@ -162,7 +180,6 @@ export default function CreateAct() {
       spotAgentMethod,
       spotAgentCount,
       biddingTime,
-      teamData, // Сохраняем и данные команды
       timestamp: Date.now(),
     };
     localStorage.setItem("createActFormState", JSON.stringify(formState));
@@ -186,7 +203,6 @@ export default function CreateAct() {
           setSpotAgentMethod(formState.spotAgentMethod || SelectionMethods.VOTING);
           setSpotAgentCount(formState.spotAgentCount || 0);
           setBiddingTime(formState.biddingTime || 5);
-          setTeamData(formState.teamData || null); // Восстанавливаем данные команды
         }
       }
     } catch (error) {
@@ -219,10 +235,10 @@ export default function CreateAct() {
     setIsSubmitting(true);
 
     try {
-      console.log("Sending data:", { name, description, photoFile, teamData });
+      console.log("Original teams data:", teams);
       
-      // Создаем акт
-      const result = await actApi.createAct(name, description, photoFile);
+      // Создаем акт с командами (трансформация происходит в actApi)
+      const result = await actApi.createAct(name, description, photoFile, teams);
       console.log("Server response:", result);
       
       if (result) {
@@ -230,18 +246,10 @@ export default function CreateAct() {
         console.log("Act created with ID:", newActId);
         
         if (newActId) {
-          // Создаем чат
           const profileData = await profileApi.getProfile();
           await chatApi.createChatGroup(name, [profileData.id], photoFile, newActId);
-          
-          // Здесь можно добавить логику для сохранения команды
-          if (teamData) {
-            console.log("Saving team data:", teamData);
-            // TODO: добавить API для сохранения команды
-          }
         }
 
-        // Очищаем форму
         localStorage.removeItem("createActFormState");
         
         clearSelectedSequel();
@@ -260,6 +268,8 @@ export default function CreateAct() {
       setIsSubmitting(false);
     }
   };
+
+  // Удалите функцию transformTeamsForApi из этого файла!
 
   // Сохранение задач
   const saveLocalTasksToServer = async (actId) => {
@@ -428,43 +438,74 @@ export default function CreateAct() {
           Specify possible spot agents for which viewers will vote.
         </p>
         <div className={styles.teamsGrid}> 
-          {teamData ? (
-            <div className={styles.paragraph}>
-              <div className={styles.teamwrap}>
-                <div className={styles.guildImgContainer} style={{border:'none'}}>
-                  <div className={styles.emptyPlaceholder}>
-                    <img 
-                      src={teamData.heroAvatar || teamicon} 
-                      alt={teamData.name}
-                      style={{
-                        width: '60px',
-                        height: '60px',
-                        borderRadius: '50%',
-                        objectFit: 'cover'
-                      }}
-                    />
-                    <p style={{marginTop: '8px', fontWeight: 'bold'}}>{teamData.name}</p>
-                    <p style={{fontSize: '12px', color: '#888'}}>
-                      {teamData.membersCount} members
+          {/* Отображаем все сохраненные команды */}
+          {teams && teams.length > 0 ? (
+            teams.map((team) => {
+              const teamTotalPoints = calculateTeamPoints(team);
+              const teamHeroAvatar = team.heroes && team.heroes.length > 0 ? team.heroes[0].img : teamicon;
+              
+              return (
+                <div className={styles.paragraph} key={team.id}>
+                  <div 
+                    className={styles.teamwrap} 
+                    onClick={() => {
+                      teamStore.loadTeamForEditing(team.id);
+                      navigate('/team');
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className={styles.guildImgContainer} style={{border:'none'}}>
+                      <div className={styles.emptyPlaceholder}>
+                        <img 
+                          src={teamHeroAvatar} 
+                          alt={team.name || "Team avatar"}
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = teamicon;
+                          }}
+                          style={{
+                            width: '150px',
+                            height: '150px',
+                            objectFit: 'cover'
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <p style={{
+                      marginTop: '8px',
+                      fontWeight: 'bold',
+                      color: '#fff'
+                    }}>
+                      {team.name}
                     </p>
+                    
+                    <div className={styles.pointsWrapper}>
+                      <img src={points} alt="points" />
+                      <p style={{color:'white'}}>{teamTotalPoints}</p>
+                    </div>
                   </div>
                 </div>
+              );
+            })
+          ) : null}
+          
+          {/* Кнопка добавления новой команды */}
+          <div className={styles.paragraph}>
+            <div 
+              className={styles.guildImgContainer} 
+              onClick={() => {
+                teamStore.createNewTeam();
+                navigate('/team');
+              }} 
+              style={{height:'260px', padding:'10px 0px', cursor: 'pointer'}}
+            >
+              <div className={styles.emptyPlaceholder}>
+                <img src={team} alt="Add icon" />
+                <p>Add new team</p>
               </div>
             </div>
-          ) : (
-            <div className={styles.paragraph}>
-              <div 
-                className={styles.guildImgContainer} 
-                onClick={() => navigate('/team')} 
-                style={{height:'260px', padding:'10px 0px', cursor: 'pointer'}}
-              >
-                <div className={styles.emptyPlaceholder}>
-                  <img src={team} alt="Add icon" />
-                  <p>Add team</p>
-                </div>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       </div>
 

@@ -17,9 +17,12 @@
 
 **Meract** is a modern interactive streaming platform. The project combines live broadcasting, real-time chat communication, gamification elements (achievements, guilds), and unique geolocation-based route creation.
 
+
 <p align="center">
   <img src="./docs/screenshot.png" alt="Meract Platform Preview" width="100%">
 </p>
+
+
 
 
 ---

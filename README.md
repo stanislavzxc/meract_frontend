@@ -76,6 +76,11 @@ npm run preview
 * **Maps & Geolocation:** `Leaflet`
 * **Notifications:** `React Toastify`
 
+
+<p align="center">
+  <img src="./docs/screenshot.png" alt="Meract Platform Preview" width="100%">
+</p>
+
 ### 📂 Folder Structure
 
 ```text
